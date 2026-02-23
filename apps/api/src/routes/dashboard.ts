@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { calculateIncomeStatement } from "@muninsbok/core";
+import { calculateIncomeStatement } from "@muninsbok/core/reports";
+import { öreToKronor } from "../utils/amount-conversion.js";
 
 export async function dashboardRoutes(fastify: FastifyInstance) {
   const voucherRepo = fastify.repos.vouchers;
@@ -33,7 +34,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         number: v.number,
         date: v.date.toISOString(),
         description: v.description,
-        amount: v.lines.reduce((sum, l) => sum + l.debit, 0) / 100,
+        amount: öreToKronor(v.lines.reduce((sum, l) => sum + l.debit, 0)),
       }));
 
     // Balance check — total debit should equal total credit
@@ -78,17 +79,17 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       .map(([month, data]) => ({
         month,
         voucherCount: data.count,
-        income: data.income / 100,
-        expense: data.expense / 100,
+        income: öreToKronor(data.income),
+        expense: öreToKronor(data.expense),
       }));
 
     return {
       data: {
         voucherCount: vouchers.length,
         accountCount: accounts.length,
-        netResult: incomeStatement.netResult / 100,
-        totalDebit: totalDebit / 100,
-        totalCredit: totalCredit / 100,
+        netResult: öreToKronor(incomeStatement.netResult),
+        totalDebit: öreToKronor(totalDebit),
+        totalCredit: öreToKronor(totalCredit),
         isBalanced: totalDebit === totalCredit,
         latestVouchers,
         accountTypeCounts,
