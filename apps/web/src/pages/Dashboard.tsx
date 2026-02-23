@@ -88,14 +88,18 @@ export function Dashboard() {
 
         <div className={`card ${styles.dashboardStat}`}>
           <div className={styles.statLabel}>Resultat</div>
-          <div className={`${styles.statValue} ${d.netResult >= 0 ? styles.positive : styles.negative}`}>
+          <div
+            className={`${styles.statValue} ${d.netResult >= 0 ? styles.positive : styles.negative}`}
+          >
             {formatAmount(d.netResult)} kr
           </div>
         </div>
 
         <div className={`card ${styles.dashboardStat}`}>
           <div className={styles.statLabel}>Balans</div>
-          <div className={`${styles.statValue} ${d.isBalanced ? styles.positive : styles.negative}`}>
+          <div
+            className={`${styles.statValue} ${d.isBalanced ? styles.positive : styles.negative}`}
+          >
             {d.isBalanced ? "✓ OK" : "✗ Obalans"}
           </div>
         </div>
