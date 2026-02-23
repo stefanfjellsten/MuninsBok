@@ -33,10 +33,7 @@ export class FiscalYearRepository implements IFiscalYearRepository {
     return fy ? toFiscalYear(fy) : null;
   }
 
-  async findPreviousByDate(
-    organizationId: string,
-    beforeDate: Date,
-  ): Promise<FiscalYear | null> {
+  async findPreviousByDate(organizationId: string, beforeDate: Date): Promise<FiscalYear | null> {
     const fy = await this.prisma.fiscalYear.findFirst({
       where: {
         organizationId,
