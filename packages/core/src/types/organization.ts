@@ -37,7 +37,7 @@ export function isValidOrgNumber(orgNumber: string): boolean {
   const digits = cleaned.slice(-10);
   let sum = 0;
   for (let i = 0; i < 10; i++) {
-    let digit = parseInt(digits[i]!, 10);
+    let digit = parseInt(digits[i] ?? "0", 10);
     if (i % 2 === 0) {
       digit *= 2;
       if (digit > 9) digit -= 9;
