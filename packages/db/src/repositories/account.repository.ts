@@ -4,11 +4,12 @@ import type {
   CreateAccountInput,
   UpdateAccountInput,
   AccountError,
-} from "@muninsbok/core";
-import { ok, err, type Result, isValidAccountNumber } from "@muninsbok/core";
+  IAccountRepository,
+} from "@muninsbok/core/types";
+import { ok, err, type Result, isValidAccountNumber } from "@muninsbok/core/types";
 import { toAccount } from "../mappers.js";
 
-export class AccountRepository {
+export class AccountRepository implements IAccountRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async findByOrganization(organizationId: string): Promise<Account[]> {
