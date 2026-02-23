@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOrganization } from "../context/OrganizationContext";
+import { defined } from "../utils/assert";
 import { useToast } from "../context/ToastContext";
+import dialogStyles from "../components/Dialog.module.css";
 import { api, type FiscalYear } from "../api";
 
 function formatDate(dateStr: string): string {
@@ -22,9 +24,9 @@ export function FiscalYears() {
   const [error, setError] = useState<string | null>(null);
 
   const closeMutation = useMutation({
-    mutationFn: (fyId: string) => api.closeFiscalYear(organization!.id, fyId),
+    mutationFn: (fyId: string) => api.closeFiscalYear(defined(organization).id, fyId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["fiscalYears", organization!.id] });
+      queryClient.invalidateQueries({ queryKey: ["fiscalYears", defined(organization).id] });
       setFiscalYear(data.data);
       setConfirmClose(null);
       setClosingId(null);
@@ -39,9 +41,9 @@ export function FiscalYears() {
 
   const openingMutation = useMutation({
     mutationFn: ({ fyId, previousFyId }: { fyId: string; previousFyId: string }) =>
-      api.createOpeningBalances(organization!.id, fyId, previousFyId),
+      api.createOpeningBalances(defined(organization).id, fyId, previousFyId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["fiscalYears", organization!.id] });
+      queryClient.invalidateQueries({ queryKey: ["fiscalYears", defined(organization).id] });
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
       setOpeningBalanceTarget(null);
       setError(null);
@@ -191,19 +193,19 @@ export function FiscalYears() {
 
       {/* Confirm close dialog */}
       {confirmClose && (
-        <div className="dialog-overlay" onClick={() => setConfirmClose(null)}>
-          <div className="dialog dialog-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="dialog-header">
+        <div className={dialogStyles.overlay} onClick={() => setConfirmClose(null)}>
+          <div className={dialogStyles.dialogSm} onClick={(e) => e.stopPropagation()}>
+            <div className={dialogStyles.header}>
               <h3>Stäng räkenskapsår?</h3>
               <button className="btn-icon" onClick={() => setConfirmClose(null)} type="button">
                 ×
               </button>
             </div>
-            <p className="dialog-description">
+            <p className={dialogStyles.description}>
               Detta skapar ett bokslutsverifikat och låser alla verifikat i året. Åtgärden kan inte
               ångras.
             </p>
-            <div className="dialog-actions">
+            <div className={dialogStyles.actions}>
               <button type="button" className="secondary" onClick={() => setConfirmClose(null)}>
                 Avbryt
               </button>
@@ -222,9 +224,9 @@ export function FiscalYears() {
 
       {/* Confirm opening balances dialog */}
       {openingBalanceTarget && (
-        <div className="dialog-overlay" onClick={() => setOpeningBalanceTarget(null)}>
-          <div className="dialog dialog-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="dialog-header">
+        <div className={dialogStyles.overlay} onClick={() => setOpeningBalanceTarget(null)}>
+          <div className={dialogStyles.dialogSm} onClick={(e) => e.stopPropagation()}>
+            <div className={dialogStyles.header}>
               <h3>Skapa ingående balanser?</h3>
               <button
                 className="btn-icon"
@@ -234,11 +236,11 @@ export function FiscalYears() {
                 ×
               </button>
             </div>
-            <p className="dialog-description">
+            <p className={dialogStyles.description}>
               Balansposter (konton 1000–2999) från det stängda räkenskapsåret överförs som ingående
               balanser till det valda året.
             </p>
-            <div className="dialog-actions">
+            <div className={dialogStyles.actions}>
               <button
                 type="button"
                 className="secondary"
