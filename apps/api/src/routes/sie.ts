@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { toFiscalYear } from "@muninsbok/db";
-import { parseSie, exportSie, getAccountTypeFromNumber } from "@muninsbok/core";
+import { parseSie, exportSie } from "@muninsbok/core/sie";
+import { getAccountTypeFromNumber } from "@muninsbok/core/types";
 
 export async function sieRoutes(fastify: FastifyInstance) {
+  const fyRepo = fastify.repos.fiscalYears;
   const voucherRepo = fastify.repos.vouchers;
   const accountRepo = fastify.repos.accounts;
 
@@ -18,18 +19,14 @@ export async function sieRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: "fiscalYearId krävs" });
     }
 
-    // Get organization, fiscal year, accounts, and vouchers
-    const db = fastify.repos.prisma;
-    const [org, fiscalYear, accounts, vouchers] = await Promise.all([
-      db.organization.findUnique({ where: { id: orgId } }),
-      db.fiscalYear.findFirst({ where: { id: fiscalYearId, organizationId: orgId } }),
+    // All data via repository interfaces — no raw Prisma
+    const org = request.org;
+    if (!org) return reply.status(500).send({ error: "Missing org context" });
+    const [fiscalYear, accounts, vouchers] = await Promise.all([
+      fyRepo.findById(fiscalYearId, orgId),
       accountRepo.findByOrganization(orgId),
       voucherRepo.findByFiscalYear(fiscalYearId, orgId),
     ]);
-
-    if (!org) {
-      return reply.status(404).send({ error: "Organisationen hittades inte" });
-    }
 
     if (!fiscalYear) {
       return reply.status(404).send({ error: "Räkenskapsåret hittades inte" });
@@ -37,19 +34,10 @@ export async function sieRoutes(fastify: FastifyInstance) {
 
     // Calculate opening balances from previous fiscal year
     const openingBalances = new Map<string, number>();
-    const previousFy = await db.fiscalYear.findFirst({
-      where: {
-        organizationId: orgId,
-        endDate: { lt: fiscalYear.startDate },
-      },
-      orderBy: { endDate: "desc" },
-    });
+    const previousFy = await fyRepo.findPreviousByDate(orgId, fiscalYear.startDate);
 
     if (previousFy) {
-      const prevVouchers = await db.voucher.findMany({
-        where: { fiscalYearId: previousFy.id, organizationId: orgId },
-        include: { lines: true },
-      });
+      const prevVouchers = await voucherRepo.findByFiscalYear(previousFy.id, orgId);
 
       for (const v of prevVouchers) {
         for (const line of v.lines) {
@@ -94,7 +82,7 @@ export async function sieRoutes(fastify: FastifyInstance) {
       orgNumber: org.orgNumber,
       programName: "Munins bok",
       programVersion: "0.1.0",
-      fiscalYear: toFiscalYear(fiscalYear),
+      fiscalYear,
       accounts,
       vouchers,
       openingBalances,
@@ -161,55 +149,44 @@ export async function sieRoutes(fastify: FastifyInstance) {
       );
     }
 
-    // Import vouchers inside a transaction (all-or-nothing)
-    const db = fastify.repos.prisma;
+    // Import vouchers (sequential creates via repository)
     let importedCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
 
-    try {
-      await db.$transaction(async (_tx: any) => {
-        for (const sieVoucher of sieFile.vouchers) {
-          // Convert SIE transactions to voucher lines
-          const lines = sieVoucher.transactions.map((t) => ({
-            accountNumber: t.accountNumber,
-            debit: t.amount > 0 ? t.amount : 0,
-            credit: t.amount < 0 ? -t.amount : 0,
-            ...(t.description != null && { description: t.description }),
-          }));
+    for (const sieVoucher of sieFile.vouchers) {
+      // Convert SIE transactions to voucher lines
+      const lines = sieVoucher.transactions.map((t) => ({
+        accountNumber: t.accountNumber,
+        debit: t.amount > 0 ? t.amount : 0,
+        credit: t.amount < 0 ? -t.amount : 0,
+        ...(t.description != null && { description: t.description }),
+      }));
 
-          const result = await voucherRepo.create({
-            organizationId: orgId,
-            fiscalYearId,
-            date: sieVoucher.date,
-            description:
-              sieVoucher.description || `Import ${sieVoucher.series}${sieVoucher.number}`,
-            lines,
-          });
-
-          if (result.ok) {
-            importedCount++;
-          } else {
-            errorCount++;
-            errors.push(
-              `Verifikat ${sieVoucher.series}${sieVoucher.number}: ${result.error.message}`,
-            );
-          }
-        }
-
-        // If any voucher failed, abort the entire transaction
-        if (errorCount > 0) {
-          throw new Error(`${errorCount} verifikat kunde inte importeras`);
-        }
+      const result = await voucherRepo.create({
+        organizationId: orgId,
+        fiscalYearId,
+        date: sieVoucher.date,
+        description:
+          sieVoucher.description || `Import ${sieVoucher.series}${sieVoucher.number}`,
+        lines,
       });
-    } catch (txError) {
-      if (errorCount > 0) {
-        return reply.status(400).send({
-          error: `Import avbruten — ${errorCount} verifikat med fel`,
-          details: errors,
-        });
+
+      if (result.ok) {
+        importedCount++;
+      } else {
+        errorCount++;
+        errors.push(
+          `Verifikat ${sieVoucher.series}${sieVoucher.number}: ${result.error.message}`,
+        );
       }
-      throw txError; // Re-throw unexpected errors
+    }
+
+    if (errorCount > 0) {
+      return reply.status(400).send({
+        error: `Import avbruten — ${errorCount} verifikat med fel`,
+        details: errors,
+      });
     }
 
     return {
