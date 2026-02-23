@@ -1,0 +1,131 @@
+/**
+ * Repository interfaces — core contracts that outer layers implement.
+ *
+ * Placing interfaces in the innermost package (@muninsbok/core) ensures that
+ * the domain never depends on infrastructure (Dependency Inversion Principle).
+ */
+
+import type { Result } from "./result.js";
+import type { Organization, CreateOrganizationInput, OrganizationError } from "./organization.js";
+import type { FiscalYear, CreateFiscalYearInput, FiscalYearError } from "./fiscal-year.js";
+import type {
+  Account,
+  CreateAccountInput,
+  UpdateAccountInput,
+  AccountError,
+} from "./account.js";
+import type { Voucher, CreateVoucherInput, VoucherError } from "./voucher.js";
+import type { Document, CreateDocumentInput, DocumentError } from "./document.js";
+
+// ── Pagination ──────────────────────────────────────────────
+
+export interface PaginatedQuery {
+  readonly page: number;
+  readonly limit: number;
+  readonly search?: string;
+}
+
+export interface PaginatedResult<T> {
+  readonly data: readonly T[];
+  readonly total: number;
+  readonly page: number;
+  readonly limit: number;
+}
+
+// ── Organization ────────────────────────────────────────────
+
+export interface IOrganizationRepository {
+  findById(id: string): Promise<Organization | null>;
+  findByOrgNumber(orgNumber: string): Promise<Organization | null>;
+  findAll(): Promise<Organization[]>;
+  create(input: CreateOrganizationInput): Promise<Result<Organization, OrganizationError>>;
+  update(
+    id: string,
+    data: Partial<Pick<Organization, "name" | "fiscalYearStartMonth">>,
+  ): Promise<Organization | null>;
+  delete(id: string): Promise<boolean>;
+}
+
+// ── Account ─────────────────────────────────────────────────
+
+export interface IAccountRepository {
+  findByOrganization(organizationId: string): Promise<Account[]>;
+  findActive(organizationId: string): Promise<Account[]>;
+  findByNumber(organizationId: string, number: string): Promise<Account | null>;
+  create(
+    organizationId: string,
+    input: CreateAccountInput,
+  ): Promise<Result<Account, AccountError>>;
+  createMany(organizationId: string, inputs: readonly CreateAccountInput[]): Promise<number>;
+  deactivate(organizationId: string, number: string): Promise<boolean>;
+  update(
+    organizationId: string,
+    number: string,
+    input: UpdateAccountInput,
+  ): Promise<Result<Account, AccountError>>;
+}
+
+// ── Voucher ─────────────────────────────────────────────────
+
+export interface IVoucherRepository {
+  findById(id: string, organizationId: string): Promise<Voucher | null>;
+  findByFiscalYear(fiscalYearId: string, organizationId: string): Promise<Voucher[]>;
+  findByFiscalYearPaginated(
+    fiscalYearId: string,
+    organizationId: string,
+    options: PaginatedQuery,
+  ): Promise<PaginatedResult<Voucher>>;
+  findByDateRange(
+    organizationId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Voucher[]>;
+  create(input: CreateVoucherInput): Promise<Result<Voucher, VoucherError>>;
+  createCorrection(
+    voucherId: string,
+    organizationId: string,
+  ): Promise<Result<Voucher, VoucherError>>;
+  getNextVoucherNumber(fiscalYearId: string): Promise<number>;
+  findNumberGaps(fiscalYearId: string, organizationId: string): Promise<number[]>;
+}
+
+// ── FiscalYear ──────────────────────────────────────────────
+
+export interface IFiscalYearRepository {
+  findByOrganization(organizationId: string): Promise<FiscalYear[]>;
+  findById(id: string, organizationId: string): Promise<FiscalYear | null>;
+  /** Find the most recent fiscal year ending before `beforeDate`. */
+  findPreviousByDate(
+    organizationId: string,
+    beforeDate: Date,
+  ): Promise<FiscalYear | null>;
+  create(input: CreateFiscalYearInput): Promise<Result<FiscalYear, FiscalYearError>>;
+  close(
+    id: string,
+    organizationId: string,
+  ): Promise<Result<FiscalYear, FiscalYearError>>;
+  createOpeningBalances(
+    fiscalYearId: string,
+    previousFiscalYearId: string,
+    organizationId: string,
+  ): Promise<Result<Voucher, FiscalYearError>>;
+}
+
+// ── Document ────────────────────────────────────────────────
+
+export interface IDocumentRepository {
+  findById(id: string, organizationId: string): Promise<Document | null>;
+  findByVoucher(voucherId: string, organizationId: string): Promise<Document[]>;
+  findByOrganization(organizationId: string): Promise<Document[]>;
+  create(input: CreateDocumentInput): Promise<Result<Document, DocumentError>>;
+  delete(id: string, organizationId: string): Promise<boolean>;
+}
+
+// ── Document Storage ────────────────────────────────────────
+
+export interface IDocumentStorage {
+  generateStorageKey(organizationId: string, filename: string): string;
+  store(storageKey: string, data: Uint8Array): Promise<void>;
+  read(storageKey: string): Promise<Uint8Array>;
+  remove(storageKey: string): Promise<boolean>;
+}
