@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useOrganization } from "../context/OrganizationContext";
+import { defined } from "../utils/assert";
 import { api } from "../api";
 import { formatAmount, formatDate } from "../utils/formatting";
+import styles from "./Dashboard.module.css";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   ASSET: "Tillgångar",
@@ -29,7 +31,7 @@ const MONTH_NAMES = [
 
 function formatMonth(key: string): string {
   const parts = key.split("-");
-  const monthIndex = parseInt(parts[1]!, 10) - 1;
+  const monthIndex = parseInt(parts[1] ?? "0", 10) - 1;
   return MONTH_NAMES[monthIndex] ?? key;
 }
 
@@ -39,7 +41,7 @@ export function Dashboard() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard", organization?.id, fiscalYear?.id],
-    queryFn: () => api.getDashboard(organization!.id, fiscalYear!.id),
+    queryFn: () => api.getDashboard(defined(organization).id, defined(fiscalYear).id),
     enabled: !!organization && !!fiscalYear,
   });
 
@@ -73,27 +75,27 @@ export function Dashboard() {
       <h2 style={{ marginBottom: "1rem" }}>Översikt</h2>
 
       {/* KPI cards */}
-      <div className="dashboard-grid">
-        <div className="card dashboard-stat">
-          <div className="stat-label">Verifikat</div>
-          <div className="stat-value">{d.voucherCount}</div>
+      <div className={styles.dashboardGrid}>
+        <div className={`card ${styles.dashboardStat}`}>
+          <div className={styles.statLabel}>Verifikat</div>
+          <div className={styles.statValue}>{d.voucherCount}</div>
         </div>
 
-        <div className="card dashboard-stat">
-          <div className="stat-label">Konton</div>
-          <div className="stat-value">{d.accountCount}</div>
+        <div className={`card ${styles.dashboardStat}`}>
+          <div className={styles.statLabel}>Konton</div>
+          <div className={styles.statValue}>{d.accountCount}</div>
         </div>
 
-        <div className="card dashboard-stat">
-          <div className="stat-label">Resultat</div>
-          <div className={`stat-value ${d.netResult >= 0 ? "positive" : "negative"}`}>
+        <div className={`card ${styles.dashboardStat}`}>
+          <div className={styles.statLabel}>Resultat</div>
+          <div className={`${styles.statValue} ${d.netResult >= 0 ? styles.positive : styles.negative}`}>
             {formatAmount(d.netResult)} kr
           </div>
         </div>
 
-        <div className="card dashboard-stat">
-          <div className="stat-label">Balans</div>
-          <div className={`stat-value ${d.isBalanced ? "positive" : "negative"}`}>
+        <div className={`card ${styles.dashboardStat}`}>
+          <div className={styles.statLabel}>Balans</div>
+          <div className={`${styles.statValue} ${d.isBalanced ? styles.positive : styles.negative}`}>
             {d.isBalanced ? "✓ OK" : "✗ Obalans"}
           </div>
         </div>
@@ -104,39 +106,39 @@ export function Dashboard() {
         <div className="card">
           <h3 style={{ marginBottom: "0.75rem" }}>Månadsöversikt</h3>
           <div
-            className="chart-container"
+            className={styles.chartContainer}
             role="img"
             aria-label="Stapeldiagram med intäkter och kostnader per månad"
           >
             {d.monthlyTrend.map((m) => (
-              <div key={m.month} className="chart-column">
-                <div className="chart-bars">
+              <div key={m.month} className={styles.chartColumn}>
+                <div className={styles.chartBars}>
                   <div
-                    className="chart-bar chart-bar-income"
+                    className={`${styles.chartBar} ${styles.chartBarIncome}`}
                     style={{
                       height: maxBarValue > 0 ? `${(m.income / maxBarValue) * 100}%` : "0%",
                     }}
                     title={`Intäkter: ${formatAmount(m.income)} kr`}
                   />
                   <div
-                    className="chart-bar chart-bar-expense"
+                    className={`${styles.chartBar} ${styles.chartBarExpense}`}
                     style={{
                       height: maxBarValue > 0 ? `${(m.expense / maxBarValue) * 100}%` : "0%",
                     }}
                     title={`Kostnader: ${formatAmount(m.expense)} kr`}
                   />
                 </div>
-                <div className="chart-label">{formatMonth(m.month)}</div>
-                <div className="chart-count">{m.voucherCount} ver.</div>
+                <div className={styles.chartLabel}>{formatMonth(m.month)}</div>
+                <div className={styles.chartCount}>{m.voucherCount} ver.</div>
               </div>
             ))}
           </div>
-          <div className="chart-legend">
-            <span className="legend-item">
-              <span className="legend-swatch legend-income" /> Intäkter
+          <div className={styles.chartLegend}>
+            <span className={styles.legendItem}>
+              <span className={`${styles.legendSwatch} ${styles.legendIncome}`} /> Intäkter
             </span>
-            <span className="legend-item">
-              <span className="legend-swatch legend-expense" /> Kostnader
+            <span className={styles.legendItem}>
+              <span className={`${styles.legendSwatch} ${styles.legendExpense}`} /> Kostnader
             </span>
           </div>
         </div>
@@ -146,21 +148,21 @@ export function Dashboard() {
       {accountTypes.length > 0 && (
         <div className="card">
           <h3 style={{ marginBottom: "0.75rem" }}>Kontofördelning</h3>
-          <div className="distribution-bars">
+          <div className={styles.distributionBars}>
             {accountTypes
               .sort(([, a], [, b]) => b - a)
               .map(([type, count]) => (
-                <div key={type} className="dist-row">
-                  <span className="dist-label">{ACCOUNT_TYPE_LABELS[type] ?? type}</span>
-                  <div className="dist-track">
+                <div key={type} className={styles.distRow}>
+                  <span className={styles.distLabel}>{ACCOUNT_TYPE_LABELS[type] ?? type}</span>
+                  <div className={styles.distTrack}>
                     <div
-                      className="dist-fill"
+                      className={styles.distFill}
                       style={{
                         width: totalAccounts > 0 ? `${(count / totalAccounts) * 100}%` : "0%",
                       }}
                     />
                   </div>
-                  <span className="dist-count">{count}</span>
+                  <span className={styles.distCount}>{count}</span>
                 </div>
               ))}
           </div>
