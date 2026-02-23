@@ -1,7 +1,14 @@
 /**
  * Dependency injection types for API routes.
- * Allows routes to use repository interfaces instead of importing prisma directly.
+ * Routes depend on interfaces (from @muninsbok/core), not concrete classes.
  */
+import type {
+  IOrganizationRepository,
+  IAccountRepository,
+  IVoucherRepository,
+  IFiscalYearRepository,
+  IDocumentRepository,
+} from "@muninsbok/core/types";
 import {
   type PrismaClient,
   OrganizationRepository,
@@ -12,11 +19,11 @@ import {
 } from "@muninsbok/db";
 
 export interface Repositories {
-  readonly organizations: OrganizationRepository;
-  readonly accounts: AccountRepository;
-  readonly vouchers: VoucherRepository;
-  readonly fiscalYears: FiscalYearRepository;
-  readonly documents: DocumentRepository;
+  readonly organizations: IOrganizationRepository;
+  readonly accounts: IAccountRepository;
+  readonly vouchers: IVoucherRepository;
+  readonly fiscalYears: IFiscalYearRepository;
+  readonly documents: IDocumentRepository;
   readonly prisma: PrismaClient;
 }
 
