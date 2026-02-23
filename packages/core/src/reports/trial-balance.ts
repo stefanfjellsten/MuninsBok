@@ -51,7 +51,8 @@ export function calculateTrialBalance(
   const sortedAccountNumbers = [...totals.keys()].sort();
 
   for (const accountNumber of sortedAccountNumbers) {
-    const totalsEntry = totals.get(accountNumber)!;
+    const totalsEntry = totals.get(accountNumber);
+    if (!totalsEntry) continue;
     const account = accountMap.get(accountNumber);
 
     rows.push({
