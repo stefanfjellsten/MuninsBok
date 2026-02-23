@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useOrganization } from "../context/OrganizationContext";
+import { defined } from "../utils/assert";
 import { api, type Account } from "../api";
 
 const ACCOUNT_TYPES = [
@@ -44,13 +45,13 @@ export function AccountList() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["accounts", organization?.id, showAll],
-    queryFn: () => api.getAccounts(organization!.id, !showAll),
+    queryFn: () => api.getAccounts(defined(organization).id, !showAll),
     enabled: !!organization,
   });
 
   const createMutation = useMutation({
     mutationFn: () =>
-      api.createAccount(organization!.id, {
+      api.createAccount(defined(organization).id, {
         number: newNumber,
         name: newName,
         type: newType,
@@ -69,7 +70,7 @@ export function AccountList() {
   });
 
   const deactivateMutation = useMutation({
-    mutationFn: (accountNumber: string) => api.deactivateAccount(organization!.id, accountNumber),
+    mutationFn: (accountNumber: string) => api.deactivateAccount(defined(organization).id, accountNumber),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts", organization?.id] });
     },
@@ -79,7 +80,7 @@ export function AccountList() {
     mutationFn: (params: {
       accountNumber: string;
       data: { name?: string; type?: Account["type"]; isVatAccount?: boolean };
-    }) => api.updateAccount(organization!.id, params.accountNumber, params.data),
+    }) => api.updateAccount(defined(organization).id, params.accountNumber, params.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["accounts", organization?.id] });
       setEditingAccount(null);
