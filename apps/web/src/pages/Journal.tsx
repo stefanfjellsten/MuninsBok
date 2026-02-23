@@ -5,10 +5,7 @@ import { DateFilter } from "../components/DateFilter";
 import { useReportQuery } from "../hooks/useReportQuery";
 
 export function Journal() {
-  const { data, isLoading, error, setDateRange } = useReportQuery(
-    "journal",
-    api.getJournal,
-  );
+  const { data, isLoading, error, setDateRange } = useReportQuery("journal", api.getJournal);
 
   if (isLoading) {
     return <div className="loading">Laddar grundbok...</div>;
