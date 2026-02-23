@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
+import dialogStyles from "./Dialog.module.css";
 
 interface Props {
   open: boolean;
@@ -50,16 +51,16 @@ export function DeleteOrganizationDialog({
   if (!open) return null;
 
   return (
-    <div className="dialog-overlay" onClick={resetAndClose}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-header">
+    <div className={dialogStyles.overlay} onClick={resetAndClose}>
+      <div className={dialogStyles.dialog} onClick={(e) => e.stopPropagation()}>
+        <div className={dialogStyles.header}>
           <h3>Radera organisation</h3>
           <button className="btn-icon" onClick={resetAndClose} type="button">
             ×
           </button>
         </div>
 
-        <p className="dialog-description" style={{ color: "#c62828" }}>
+        <p className={dialogStyles.description} style={{ color: "#c62828" }}>
           <strong>Varning!</strong> Alla räkenskapsår, konton, verifikat och dokument kopplade till
           denna organisation raderas permanent.
         </p>
@@ -81,7 +82,7 @@ export function DeleteOrganizationDialog({
             />
           </div>
 
-          <div className="dialog-actions">
+          <div className={dialogStyles.actions}>
             <button type="button" className="secondary" onClick={resetAndClose}>
               Avbryt
             </button>
