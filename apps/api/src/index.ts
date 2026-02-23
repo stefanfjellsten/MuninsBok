@@ -8,6 +8,7 @@ config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../.env")
 import { prisma } from "@muninsbok/db";
 import { buildApp } from "./app.js";
 import { createRepositories } from "./repositories.js";
+import { DocumentStorage } from "./services/document-storage.js";
 
 // ------ Environment validation ------
 const requiredEnv = ["DATABASE_URL"] as const;
@@ -27,10 +28,12 @@ if (isProd && !process.env["API_KEY"]) {
 
 // ------ Build app ------
 const repos = createRepositories(prisma);
+const documentStorage = new DocumentStorage();
 
 const apiKey = process.env["API_KEY"];
 const fastify = await buildApp({
   repos,
+  documentStorage,
   corsOrigin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
   ...(apiKey != null && { apiKey }),
   fastifyOptions: {
