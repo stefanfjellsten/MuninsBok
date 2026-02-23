@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { decodeSieFile } from "@muninsbok/core";
+import { decodeSieFile } from "@muninsbok/core/sie";
 import { useOrganization } from "../context/OrganizationContext";
+import { defined } from "../utils/assert";
 import { api } from "../api";
 
 export function SieExport() {
@@ -14,7 +15,7 @@ export function SieExport() {
   const [error, setError] = useState<string | null>(null);
 
   const importMutation = useMutation({
-    mutationFn: (content: string) => api.importSie(organization!.id, fiscalYear!.id, content),
+    mutationFn: (content: string) => api.importSie(defined(organization).id, defined(fiscalYear).id, content),
     onSuccess: (data) => {
       setImportResult(data.data);
       setError(null);
@@ -37,7 +38,7 @@ export function SieExport() {
   };
 
   const handleExport = () => {
-    const url = api.exportSie(organization!.id, fiscalYear!.id);
+    const url = api.exportSie(defined(organization).id, defined(fiscalYear).id);
     window.open(url, "_blank");
   };
 
