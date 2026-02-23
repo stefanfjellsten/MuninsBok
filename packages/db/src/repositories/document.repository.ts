@@ -1,9 +1,14 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
-import type { Document, CreateDocumentInput, DocumentError } from "@muninsbok/core";
-import { ok, err, type Result, isAllowedMimeType } from "@muninsbok/core";
+import type {
+  Document,
+  CreateDocumentInput,
+  DocumentError,
+  IDocumentRepository,
+} from "@muninsbok/core/types";
+import { ok, err, type Result, isAllowedMimeType } from "@muninsbok/core/types";
 import { toDocument } from "../mappers.js";
 
-export class DocumentRepository {
+export class DocumentRepository implements IDocumentRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async findById(id: string, organizationId: string): Promise<Document | null> {
