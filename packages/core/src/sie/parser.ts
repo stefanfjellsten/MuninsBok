@@ -42,14 +42,16 @@ export function parseSie(content: string): Result<SieFile, SieParseError> {
   } | null = null;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!.trim();
+    const raw = lines[i];
+    if (raw === undefined) continue;
+    const line = raw.trim();
     if (!line || line.startsWith("//")) continue;
 
     // Parse the line into tokens
     const tokens = parseSieLine(line);
     if (tokens.length === 0) continue;
 
-    const tag = tokens[0]!.toUpperCase();
+    const tag = (tokens[0] ?? "").toUpperCase();
 
     try {
       switch (tag) {
@@ -214,7 +216,8 @@ function parseSieLine(line: string): string[] {
   let inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
-    const char = line[i]!;
+    const char = line[i];
+    if (char === undefined) break;
 
     if (char === '"') {
       inQuotes = !inQuotes;
