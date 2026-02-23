@@ -1,6 +1,14 @@
 import type { PrismaClient } from "../generated/prisma/client.js";
-import type { Voucher, CreateVoucherInput, VoucherError } from "@muninsbok/core";
-import { ok, err, type Result, validateVoucher } from "@muninsbok/core";
+import type {
+  Voucher,
+  CreateVoucherInput,
+  VoucherError,
+  IVoucherRepository,
+  PaginatedQuery,
+  PaginatedResult,
+} from "@muninsbok/core/types";
+import { ok, err, type Result } from "@muninsbok/core/types";
+import { validateVoucher } from "@muninsbok/core/voucher";
 import { toVoucher, toAccount, toFiscalYear } from "../mappers.js";
 
 const voucherInclude = {
@@ -9,7 +17,7 @@ const voucherInclude = {
   correctedByVoucher: true,
 } as const;
 
-export class VoucherRepository {
+export class VoucherRepository implements IVoucherRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async findById(id: string, organizationId: string): Promise<Voucher | null> {
@@ -35,8 +43,8 @@ export class VoucherRepository {
   async findByFiscalYearPaginated(
     fiscalYearId: string,
     organizationId: string,
-    options: { page: number; limit: number; search?: string },
-  ): Promise<{ vouchers: Voucher[]; total: number; page: number; limit: number }> {
+    options: PaginatedQuery,
+  ): Promise<PaginatedResult<Voucher>> {
     const { page, limit, search } = options;
     const skip = (page - 1) * limit;
 
@@ -61,7 +69,7 @@ export class VoucherRepository {
       this.prisma.voucher.count({ where }),
     ]);
 
-    return { vouchers: vouchers.map(toVoucher), total, page, limit };
+    return { data: vouchers.map(toVoucher), total, page, limit };
   }
 
   async findByDateRange(
@@ -133,13 +141,17 @@ export class VoucherRepository {
         description: input.description,
         ...(input.createdBy != null && { createdBy: input.createdBy }),
         lines: {
-          create: input.lines.map((line) => ({
-            accountId: accountMap.get(line.accountNumber)!,
-            accountNumber: line.accountNumber,
-            debit: line.debit,
-            credit: line.credit,
-            ...(line.description != null && { description: line.description }),
-          })),
+          create: input.lines.map((line) => {
+            const accountId = accountMap.get(line.accountNumber);
+            if (!accountId) throw new Error(`Konto ${line.accountNumber} finns inte`);
+            return {
+              accountId,
+              accountNumber: line.accountNumber,
+              debit: line.debit,
+              credit: line.credit,
+              ...(line.description != null && { description: line.description }),
+            };
+          }),
         },
         documents: input.documentIds
           ? {
