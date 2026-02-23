@@ -11,6 +11,30 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./api-types": {
+      "types": "./dist/api-types/index.d.ts",
+      "import": "./dist/api-types/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    },
+    "./reports": {
+      "types": "./dist/reports/index.d.ts",
+      "import": "./dist/reports/index.js"
+    },
+    "./sie": {
+      "types": "./dist/sie/index.d.ts",
+      "import": "./dist/sie/index.js"
+    },
+    "./chart-of-accounts": {
+      "types": "./dist/chart-of-accounts/index.d.ts",
+      "import": "./dist/chart-of-accounts/index.js"
+    },
+    "./voucher": {
+      "types": "./dist/voucher/index.d.ts",
+      "import": "./dist/voucher/index.js"
     }
   },
   "scripts": {
