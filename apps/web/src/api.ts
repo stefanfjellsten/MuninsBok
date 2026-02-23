@@ -1,248 +1,42 @@
+import type {
+  Account,
+  ApiResponse,
+  BalanceSheet,
+  DashboardSummary,
+  DocumentMeta,
+  FiscalYear,
+  GeneralLedgerReport,
+  IncomeStatement,
+  JournalReport,
+  Organization,
+  PaginatedApiResponse,
+  TrialBalance,
+  VatReport,
+  Voucher,
+  VoucherGaps,
+  VoucherListReportData,
+} from "@muninsbok/core/api-types";
+
+export type {
+  Account,
+  BalanceSheet,
+  DashboardSummary,
+  DocumentMeta,
+  FiscalYear,
+  GeneralLedgerReport,
+  IncomeStatement,
+  JournalReport,
+  Organization,
+  Pagination,
+  ReportSection,
+  TrialBalance,
+  VatReport,
+  Voucher,
+  VoucherGaps,
+  VoucherListReportData,
+} from "@muninsbok/core/api-types";
+
 const API_BASE = "/api";
-
-export interface Organization {
-  id: string;
-  orgNumber: string;
-  name: string;
-  fiscalYearStartMonth: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface FiscalYear {
-  id: string;
-  organizationId: string;
-  startDate: string;
-  endDate: string;
-  isClosed: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Account {
-  number: string;
-  name: string;
-  type: "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
-  isVatAccount: boolean;
-  isActive: boolean;
-}
-
-export interface VoucherLine {
-  id: string;
-  voucherId: string;
-  accountNumber: string;
-  debit: number;
-  credit: number;
-  description?: string;
-}
-
-export interface Voucher {
-  id: string;
-  fiscalYearId: string;
-  organizationId: string;
-  number: number;
-  date: string;
-  description: string;
-  lines: VoucherLine[];
-  documentIds: string[];
-  createdBy?: string;
-  correctsVoucherId?: string;
-  correctedByVoucherId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TrialBalanceRow {
-  accountNumber: string;
-  accountName: string;
-  debit: number;
-  credit: number;
-  balance: number;
-}
-
-export interface TrialBalance {
-  rows: TrialBalanceRow[];
-  totalDebit: number;
-  totalCredit: number;
-  generatedAt: string;
-}
-
-export interface ReportSection {
-  title: string;
-  rows: { accountNumber: string; accountName: string; amount: number }[];
-  total: number;
-}
-
-export interface IncomeStatement {
-  revenues: ReportSection;
-  expenses: ReportSection;
-  operatingResult: number;
-  financialIncome: ReportSection;
-  financialExpenses: ReportSection;
-  netResult: number;
-  generatedAt: string;
-}
-
-export interface BalanceSheet {
-  assets: ReportSection;
-  liabilities: ReportSection;
-  equity: ReportSection;
-  totalAssets: number;
-  totalLiabilitiesAndEquity: number;
-  difference: number;
-  yearResult: number;
-  generatedAt: string;
-}
-
-export interface VatReportRow {
-  accountNumber: string;
-  accountName: string;
-  amount: number;
-}
-
-export interface VatReport {
-  outputVat: VatReportRow[];
-  totalOutputVat: number;
-  inputVat: VatReportRow[];
-  totalInputVat: number;
-  vatPayable: number;
-  generatedAt: string;
-}
-
-export interface VoucherGaps {
-  gaps: number[];
-  count: number;
-}
-
-// Journal (Grundbok) types
-export interface JournalLine {
-  accountNumber: string;
-  accountName: string;
-  debit: number;
-  credit: number;
-  description?: string;
-}
-
-export interface JournalEntry {
-  voucherId: string;
-  voucherNumber: number;
-  date: string;
-  description: string;
-  lines: JournalLine[];
-  totalDebit: number;
-  totalCredit: number;
-}
-
-export interface JournalReport {
-  entries: JournalEntry[];
-  totalDebit: number;
-  totalCredit: number;
-  generatedAt: string;
-}
-
-// General Ledger (Huvudbok) types
-export interface GeneralLedgerTransaction {
-  voucherId: string;
-  voucherNumber: number;
-  date: string;
-  description: string;
-  debit: number;
-  credit: number;
-  balance: number;
-}
-
-export interface GeneralLedgerAccount {
-  accountNumber: string;
-  accountName: string;
-  transactions: GeneralLedgerTransaction[];
-  totalDebit: number;
-  totalCredit: number;
-  closingBalance: number;
-}
-
-export interface GeneralLedgerReport {
-  accounts: GeneralLedgerAccount[];
-  generatedAt: string;
-}
-
-// Voucher List Report (Verifikationslista) types
-export interface VoucherListReportLine {
-  accountNumber: string;
-  accountName: string;
-  debit: number;
-  credit: number;
-  description?: string;
-}
-
-export interface VoucherListReportEntry {
-  voucherId: string;
-  voucherNumber: number;
-  date: string;
-  description: string;
-  createdBy?: string;
-  lines: VoucherListReportLine[];
-  totalDebit: number;
-  totalCredit: number;
-}
-
-export interface VoucherListReportData {
-  entries: VoucherListReportEntry[];
-  totalDebit: number;
-  totalCredit: number;
-  count: number;
-  generatedAt: string;
-}
-
-export interface DocumentMeta {
-  id: string;
-  organizationId: string;
-  voucherId?: string;
-  filename: string;
-  mimeType: string;
-  storageKey: string;
-  size: number;
-  createdAt: string;
-}
-
-export interface DashboardSummary {
-  voucherCount: number;
-  accountCount: number;
-  netResult: number;
-  totalDebit: number;
-  totalCredit: number;
-  isBalanced: boolean;
-  latestVouchers: {
-    id: string;
-    number: number;
-    date: string;
-    description: string;
-    amount: number;
-  }[];
-  accountTypeCounts: Record<string, number>;
-  monthlyTrend: {
-    month: string;
-    voucherCount: number;
-    income: number;
-    expense: number;
-  }[];
-  generatedAt: string;
-}
-
-export interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
-interface ApiResponse<T> {
-  data: T;
-}
-
-interface PaginatedApiResponse<T> {
-  data: T;
-  pagination: Pagination;
-}
 
 /**
  * Structured API error with status code and optional error code
