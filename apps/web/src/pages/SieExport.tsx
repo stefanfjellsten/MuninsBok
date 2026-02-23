@@ -15,7 +15,8 @@ export function SieExport() {
   const [error, setError] = useState<string | null>(null);
 
   const importMutation = useMutation({
-    mutationFn: (content: string) => api.importSie(defined(organization).id, defined(fiscalYear).id, content),
+    mutationFn: (content: string) =>
+      api.importSie(defined(organization).id, defined(fiscalYear).id, content),
     onSuccess: (data) => {
       setImportResult(data.data);
       setError(null);
