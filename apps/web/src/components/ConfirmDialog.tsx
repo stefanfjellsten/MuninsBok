@@ -1,3 +1,5 @@
+import dialogStyles from "./Dialog.module.css";
+
 interface Props {
   open: boolean;
   title: string;
@@ -20,16 +22,16 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div className="dialog-overlay" onClick={onCancel}>
-      <div className="dialog dialog-sm" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-header">
+    <div className={dialogStyles.overlay} onClick={onCancel}>
+      <div className={dialogStyles.dialogSm} onClick={(e) => e.stopPropagation()}>
+        <div className={dialogStyles.header}>
           <h3>{title}</h3>
           <button className="btn-icon" onClick={onCancel} type="button">
             ×
           </button>
         </div>
-        <p className="dialog-description">{message}</p>
-        <div className="dialog-actions">
+        <p className={dialogStyles.description}>{message}</p>
+        <div className={dialogStyles.actions}>
           <button type="button" className="secondary" onClick={onCancel}>
             Avbryt
           </button>
