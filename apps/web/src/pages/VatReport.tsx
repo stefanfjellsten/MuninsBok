@@ -5,10 +5,7 @@ import { DateFilter } from "../components/DateFilter";
 import { useReportQuery } from "../hooks/useReportQuery";
 
 export function VatReport() {
-  const { data, isLoading, error, setDateRange } = useReportQuery(
-    "vat-report",
-    api.getVatReport,
-  );
+  const { data, isLoading, error, setDateRange } = useReportQuery("vat-report", api.getVatReport);
 
   if (isLoading) {
     return <div className="loading">Laddar momsrapport...</div>;
