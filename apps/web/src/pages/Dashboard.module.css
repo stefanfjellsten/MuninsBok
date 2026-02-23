@@ -1,0 +1,210 @@
+/* Dashboard — KPI grid, chart, distribution */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-stat {
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value.positive {
+  color: #2e7d32;
+}
+
+.stat-value.negative {
+  color: #c62828;
+}
+
+/* Monthly trend chart */
+.chart-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  min-height: 160px;
+  padding: 0.5rem 0;
+}
+
+.chart-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.chart-bars {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  height: 120px;
+  width: 100%;
+  justify-content: center;
+}
+
+.chart-bar {
+  width: 40%;
+  max-width: 28px;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease;
+}
+
+.chart-bar-income {
+  background-color: #66bb6a;
+}
+
+.chart-bar-expense {
+  background-color: #ef5350;
+}
+
+.chart-label {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.chart-count {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-income {
+  background-color: #66bb6a;
+}
+
+.legend-expense {
+  background-color: #ef5350;
+}
+
+/* Account distribution */
+.distribution-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.dist-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dist-label {
+  flex: 0 0 110px;
+  font-size: 0.9rem;
+  color: #444;
+  text-align: right;
+}
+
+.dist-track {
+  flex: 1;
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dist-fill {
+  height: 100%;
+  background-color: #1976d2;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.dist-count {
+  flex: 0 0 32px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+}
+
+/* Tablet (≤ 900px) */
+@media screen and (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .chart-container {
+    overflow-x: auto;
+    min-width: 0;
+  }
+
+  .dist-label {
+    flex: 0 0 90px;
+    font-size: 0.82rem;
+  }
+}
+
+/* Mobile (≤ 600px) */
+@media screen and (max-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .chart-bars {
+    height: 80px;
+  }
+
+  .chart-label {
+    font-size: 0.65rem;
+  }
+
+  .dist-label {
+    flex: 0 0 70px;
+    font-size: 0.78rem;
+  }
+}
+
+/* Print */
+@media print {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
