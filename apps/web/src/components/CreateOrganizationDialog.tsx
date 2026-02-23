@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import type { Organization } from "../api";
+import dialogStyles from "./Dialog.module.css";
 
 interface Props {
   open: boolean;
@@ -78,9 +79,9 @@ export function CreateOrganizationDialog({ open, onClose, onCreated }: Props) {
   if (!open) return null;
 
   return (
-    <div className="dialog-overlay" onClick={resetAndClose}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-header">
+    <div className={dialogStyles.overlay} onClick={resetAndClose}>
+      <div className={dialogStyles.dialog} onClick={(e) => e.stopPropagation()}>
+        <div className={dialogStyles.header}>
           <h3>Skapa ny organisation</h3>
           <button className="btn-icon" onClick={resetAndClose} type="button">
             ×
@@ -132,7 +133,7 @@ export function CreateOrganizationDialog({ open, onClose, onCreated }: Props) {
             </select>
           </div>
 
-          <div className="dialog-actions">
+          <div className={dialogStyles.actions}>
             <button type="button" className="secondary" onClick={resetAndClose}>
               Avbryt
             </button>
