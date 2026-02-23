@@ -32,7 +32,7 @@ describe("Voucher routes", () => {
   describe("GET /:orgId/vouchers", () => {
     it("returns vouchers by fiscal year", async () => {
       repos.vouchers.findByFiscalYearPaginated.mockResolvedValue({
-        vouchers: [sampleVoucher],
+        data: [sampleVoucher],
         total: 1,
         page: 1,
         limit: 50,
