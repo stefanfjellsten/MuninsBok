@@ -8,12 +8,7 @@
 import type { Result } from "./result.js";
 import type { Organization, CreateOrganizationInput, OrganizationError } from "./organization.js";
 import type { FiscalYear, CreateFiscalYearInput, FiscalYearError } from "./fiscal-year.js";
-import type {
-  Account,
-  CreateAccountInput,
-  UpdateAccountInput,
-  AccountError,
-} from "./account.js";
+import type { Account, CreateAccountInput, UpdateAccountInput, AccountError } from "./account.js";
 import type { Voucher, CreateVoucherInput, VoucherError } from "./voucher.js";
 import type { Document, CreateDocumentInput, DocumentError } from "./document.js";
 
@@ -52,10 +47,7 @@ export interface IAccountRepository {
   findByOrganization(organizationId: string): Promise<Account[]>;
   findActive(organizationId: string): Promise<Account[]>;
   findByNumber(organizationId: string, number: string): Promise<Account | null>;
-  create(
-    organizationId: string,
-    input: CreateAccountInput,
-  ): Promise<Result<Account, AccountError>>;
+  create(organizationId: string, input: CreateAccountInput): Promise<Result<Account, AccountError>>;
   createMany(organizationId: string, inputs: readonly CreateAccountInput[]): Promise<number>;
   deactivate(organizationId: string, number: string): Promise<boolean>;
   update(
@@ -75,11 +67,7 @@ export interface IVoucherRepository {
     organizationId: string,
     options: PaginatedQuery,
   ): Promise<PaginatedResult<Voucher>>;
-  findByDateRange(
-    organizationId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<Voucher[]>;
+  findByDateRange(organizationId: string, startDate: Date, endDate: Date): Promise<Voucher[]>;
   create(input: CreateVoucherInput): Promise<Result<Voucher, VoucherError>>;
   createCorrection(
     voucherId: string,
@@ -95,15 +83,9 @@ export interface IFiscalYearRepository {
   findByOrganization(organizationId: string): Promise<FiscalYear[]>;
   findById(id: string, organizationId: string): Promise<FiscalYear | null>;
   /** Find the most recent fiscal year ending before `beforeDate`. */
-  findPreviousByDate(
-    organizationId: string,
-    beforeDate: Date,
-  ): Promise<FiscalYear | null>;
+  findPreviousByDate(organizationId: string, beforeDate: Date): Promise<FiscalYear | null>;
   create(input: CreateFiscalYearInput): Promise<Result<FiscalYear, FiscalYearError>>;
-  close(
-    id: string,
-    organizationId: string,
-  ): Promise<Result<FiscalYear, FiscalYearError>>;
+  close(id: string, organizationId: string): Promise<Result<FiscalYear, FiscalYearError>>;
   createOpeningBalances(
     fiscalYearId: string,
     previousFiscalYearId: string,
