@@ -16,14 +16,21 @@ export default tseslint.config(
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      // Allow explicit any — too noisy for existing codebase
-      "@typescript-eslint/no-explicit-any": "off",
-      // Allow non-null assertions (used with React refs & router params)
+      // Forbid explicit `any` — use `unknown` or proper types instead
+      "@typescript-eslint/no-explicit-any": "error",
+      // Forbid non-null assertions (!) — use proper narrowing
+      "@typescript-eslint/no-non-null-assertion": "error",
+      // Forbid empty object types — use `Record<string, never>` or `object`
+      "@typescript-eslint/no-empty-object-type": "error",
+      // Forbid require-style imports
+      "@typescript-eslint/no-require-imports": "error",
+    },
+  },
+  // Relax non-null assertions in test files — result[0]!.prop is standard test practice
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+    rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
-      // Allow empty object types (used in Fastify route generics)
-      "@typescript-eslint/no-empty-object-type": "off",
-      // Allow require-style imports in config files
-      "@typescript-eslint/no-require-imports": "off",
     },
   },
 );
