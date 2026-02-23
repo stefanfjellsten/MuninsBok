@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useOrganization } from "../context/OrganizationContext";
+import { defined } from "../utils/assert";
 import { useVoucherForm } from "../hooks/useVoucherForm";
 import { api } from "../api";
 import { formatAmount } from "../utils/formatting";
@@ -35,7 +36,7 @@ export function VoucherCreate() {
 
   const { data: accountsData } = useQuery({
     queryKey: ["accounts", organization?.id],
-    queryFn: () => api.getAccounts(organization!.id),
+    queryFn: () => api.getAccounts(defined(organization).id),
     enabled: !!organization,
   });
 
