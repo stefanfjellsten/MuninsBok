@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { defined } from "../utils/assert";
 import { api, type Organization, type FiscalYear } from "../api";
 
 interface OrganizationContextType {
@@ -27,7 +28,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   // Fetch fiscal years for selected organization
   const { data: fysData, isLoading: fysLoading } = useQuery({
     queryKey: ["fiscalYears", organization?.id],
-    queryFn: () => api.getFiscalYears(organization!.id),
+    queryFn: () => api.getFiscalYears(defined(organization).id),
     enabled: !!organization,
   });
 
@@ -37,13 +38,15 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
   // Auto-select first organization and fiscal year
   useEffect(() => {
     if (organizations.length > 0 && !organization) {
-      setOrganization(organizations[0]!);
+      const first = organizations[0];
+      if (first) setOrganization(first);
     }
   }, [organizations, organization]);
 
   useEffect(() => {
     if (fiscalYears.length > 0 && !fiscalYear) {
-      setFiscalYear(fiscalYears[0]!);
+      const first = fiscalYears[0];
+      if (first) setFiscalYear(first);
     }
   }, [fiscalYears, fiscalYear]);
 
