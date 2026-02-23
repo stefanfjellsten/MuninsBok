@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { buildTestApp, type MockRepos } from "../test/helpers.js";
 
 // Mock core SIE functions
-vi.mock("@muninsbok/core", async (importOriginal) => {
+vi.mock("@muninsbok/core/sie", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
@@ -12,17 +12,8 @@ vi.mock("@muninsbok/core", async (importOriginal) => {
   };
 });
 
-import { parseSie } from "@muninsbok/core";
+import { parseSie } from "@muninsbok/core/sie";
 const mockParseSie = parseSie as unknown as ReturnType<typeof vi.fn>;
-
-// Mock toFiscalYear from db (called by sie route)
-vi.mock("@muninsbok/db", async (importOriginal) => {
-  const actual = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...actual,
-    toFiscalYear: vi.fn((fy: any) => fy),
-  };
-});
 
 describe("SIE routes", () => {
   let app: FastifyInstance;
@@ -60,8 +51,8 @@ describe("SIE routes", () => {
     });
 
     it("returns 404 when organization not found", async () => {
-      repos.prisma.organization.findUnique.mockResolvedValue(null);
-      repos.prisma.fiscalYear.findFirst.mockResolvedValue(fiscalYear);
+      repos.organizations.findById.mockResolvedValue(null);
+      repos.fiscalYears.findById.mockResolvedValue(fiscalYear);
       repos.accounts.findByOrganization.mockResolvedValue([]);
       repos.vouchers.findByFiscalYear.mockResolvedValue([]);
 
@@ -75,8 +66,8 @@ describe("SIE routes", () => {
     });
 
     it("returns 404 when fiscal year not found", async () => {
-      repos.prisma.organization.findUnique.mockResolvedValue(org);
-      repos.prisma.fiscalYear.findFirst.mockResolvedValue(null);
+      repos.organizations.findById.mockResolvedValue(org);
+      repos.fiscalYears.findById.mockResolvedValue(null);
       repos.accounts.findByOrganization.mockResolvedValue([]);
       repos.vouchers.findByFiscalYear.mockResolvedValue([]);
 
@@ -90,10 +81,9 @@ describe("SIE routes", () => {
     });
 
     it("exports SIE file with correct headers", async () => {
-      repos.prisma.organization.findUnique.mockResolvedValue(org);
-      repos.prisma.fiscalYear.findFirst
-        .mockResolvedValueOnce(fiscalYear) // main FY
-        .mockResolvedValueOnce(null); // no previous FY
+      repos.organizations.findById.mockResolvedValue(org);
+      repos.fiscalYears.findById.mockResolvedValue(fiscalYear);
+      repos.fiscalYears.findPreviousByDate.mockResolvedValue(null); // no previous FY
       repos.accounts.findByOrganization.mockResolvedValue([
         { number: "1930", name: "Bank", type: "asset", isActive: true },
       ]);
@@ -174,11 +164,6 @@ describe("SIE routes", () => {
         value: { id: "v-new" },
       });
 
-      // Mock $transaction to execute the callback directly
-      repos.prisma.$transaction = vi.fn(async (cb: (tx: any) => Promise<void>) => {
-        await cb(repos.prisma);
-      });
-
       const res = await app.inject({
         method: "POST",
         url: `/api/organizations/${orgId}/sie/import?fiscalYearId=${fyId}`,
@@ -241,10 +226,6 @@ describe("SIE routes", () => {
           ok: false,
           error: { message: "Obalanserat verifikat" },
         });
-
-      repos.prisma.$transaction = vi.fn(async (cb: (tx: any) => Promise<void>) => {
-        await cb(repos.prisma);
-      });
 
       const res = await app.inject({
         method: "POST",
