@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { BAS_SIMPLIFIED } from "@muninsbok/core/chart-of-accounts";
 import { isValidOrgNumber } from "@muninsbok/core/types";
 import { createOrganizationSchema, updateOrganizationSchema } from "../schemas/index.js";
+import { parseBody } from "../utils/parse-body.js";
 
 export async function organizationRoutes(fastify: FastifyInstance) {
   const orgRepo = fastify.repos.organizations;
@@ -20,12 +21,9 @@ export async function organizationRoutes(fastify: FastifyInstance) {
 
   // Create organization
   fastify.post("/", async (request, reply) => {
-    const parsed = createOrganizationSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.status(400).send({ error: parsed.error.issues });
-    }
+    const parsed = parseBody(createOrganizationSchema, request.body);
 
-    const { fiscalYearStartMonth, ...rest } = parsed.data;
+    const { fiscalYearStartMonth, ...rest } = parsed;
 
     if (!isValidOrgNumber(rest.orgNumber)) {
       return reply.status(400).send({
@@ -58,12 +56,9 @@ export async function organizationRoutes(fastify: FastifyInstance) {
 
   // Update organization
   fastify.patch<{ Params: { orgId: string } }>("/:orgId", async (request, reply) => {
-    const parsed = updateOrganizationSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.status(400).send({ error: parsed.error.issues });
-    }
+    const parsed = parseBody(updateOrganizationSchema, request.body);
 
-    const { name, fiscalYearStartMonth } = parsed.data;
+    const { name, fiscalYearStartMonth } = parsed;
     const org = await orgRepo.update(request.params.orgId, {
       ...(name != null && { name }),
       ...(fiscalYearStartMonth != null && { fiscalYearStartMonth }),
