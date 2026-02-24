@@ -194,7 +194,7 @@ describe("Organization routes", () => {
 });
 
 describe("Health check", () => {
-  it("returns status ok", async () => {
+  it("returns status ok with extended info", async () => {
     const { app } = await buildTestApp();
 
     const res = await app.inject({ method: "GET", url: "/health" });
@@ -203,5 +203,12 @@ describe("Health check", () => {
     const body = JSON.parse(res.body);
     expect(body.status).toBe("ok");
     expect(body.timestamp).toBeDefined();
+    expect(body.uptime).toBeTypeOf("number");
+    expect(body.version).toBeDefined();
+    expect(body.memory).toMatchObject({
+      rss: expect.any(Number),
+      heapUsed: expect.any(Number),
+      heapTotal: expect.any(Number),
+    });
   });
 });
