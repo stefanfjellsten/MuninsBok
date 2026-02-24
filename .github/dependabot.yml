@@ -1,0 +1,47 @@
+version: 2
+
+updates:
+  # npm dependencies — grouped by monorepo workspace
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      core-deps:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 10
+    reviewers:
+      - muninsbok/maintainers
+    labels:
+      - dependencies
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - ci
+      - dependencies
+
+  # Docker
+  - package-ecosystem: docker
+    directory: /apps/api
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - docker
+      - dependencies
+
+  - package-ecosystem: docker
+    directory: /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - docker
+      - dependencies
