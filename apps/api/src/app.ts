@@ -4,10 +4,12 @@
  */
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastify";
 import cors from "@fastify/cors";
+import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import type { IDocumentStorage } from "@muninsbok/core/types";
 import { AppError } from "./utils/app-error.js";
 import requestLogging from "./plugins/request-logging.js";
+import auditLogging from "./plugins/audit-logging.js";
 import { organizationRoutes } from "./routes/organizations.js";
 import { voucherRoutes } from "./routes/vouchers.js";
 import { reportRoutes } from "./routes/reports.js";
@@ -29,20 +31,34 @@ export interface BuildAppOptions {
 }
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
-  const fastify = Fastify(options.fastifyOptions ?? { logger: false });
+  const fastify = Fastify({
+    ...(options.fastifyOptions ?? { logger: false }),
+    bodyLimit: 1_048_576, // 1 MB — keep tight; file uploads use multipart streaming
+  });
 
   // Plugins
+  await fastify.register(helmet, {
+    contentSecurityPolicy: false, // CSP handled by frontend / nginx
+  });
+
   await fastify.register(cors, {
     origin: options.corsOrigin ?? "http://localhost:5173",
   });
 
   await fastify.register(rateLimit, {
-    max: 100,
+    max: (request) => {
+      // Stricter limit for write operations (create, update, delete)
+      const writeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+      return writeMethods.has(request.method) ? 30 : 100;
+    },
     timeWindow: "1 minute",
   });
 
   // Structured request logging with trace IDs
   await fastify.register(requestLogging);
+
+  // Audit trail for write operations
+  await fastify.register(auditLogging);
 
   // Optional API key authentication
   if (options.apiKey) {
