@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 
@@ -23,7 +23,7 @@ RUN pnpm --filter @muninsbok/core build
 RUN pnpm --filter @muninsbok/web build
 
 # Production stage - nginx
-FROM nginx:alpine AS runner
+FROM nginx:1.27-alpine AS runner
 
 # Copy built files
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
