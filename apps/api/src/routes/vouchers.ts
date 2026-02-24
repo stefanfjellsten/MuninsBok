@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { createVoucherSchema } from "../schemas/index.js";
+import { parseBody } from "../utils/parse-body.js";
 
 export async function voucherRoutes(fastify: FastifyInstance) {
   const voucherRepo = fastify.repos.vouchers;
@@ -68,12 +69,9 @@ export async function voucherRoutes(fastify: FastifyInstance) {
 
   // Create voucher
   fastify.post<{ Params: { orgId: string } }>("/:orgId/vouchers", async (request, reply) => {
-    const parsed = createVoucherSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.status(400).send({ error: parsed.error.issues });
-    }
+    const parsed = parseBody(createVoucherSchema, request.body);
 
-    const { lines, documentIds, createdBy, ...rest } = parsed.data;
+    const { lines, documentIds, createdBy, ...rest } = parsed;
     const result = await voucherRepo.create({
       ...rest,
       organizationId: request.params.orgId,
