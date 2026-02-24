@@ -6,6 +6,8 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastif
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import type { IDocumentStorage } from "@muninsbok/core/types";
+import { AppError } from "./utils/app-error.js";
+import requestLogging from "./plugins/request-logging.js";
 import { organizationRoutes } from "./routes/organizations.js";
 import { voucherRoutes } from "./routes/vouchers.js";
 import { reportRoutes } from "./routes/reports.js";
@@ -39,6 +41,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     timeWindow: "1 minute",
   });
 
+  // Structured request logging with trace IDs
+  await fastify.register(requestLogging);
+
   // Optional API key authentication
   if (options.apiKey) {
     fastify.addHook("onRequest", async (request, reply) => {
@@ -54,18 +59,33 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     });
   }
 
-  // Global error handler — structured JSON for unexpected errors
-  fastify.setErrorHandler((error, _request, reply) => {
+  // Global error handler — structured JSON for all errors
+  fastify.setErrorHandler((error, request, reply) => {
+    // AppError carries its own status code and error code
+    if (error instanceof AppError) {
+      if (error.statusCode >= 500) {
+        request.log.error(error, "unhandled error");
+      }
+      return reply.status(error.statusCode).send({
+        error: error.message,
+        code: error.code,
+        statusCode: error.statusCode,
+        requestId: request.id,
+      });
+    }
+
+    // Fastify / plugin errors (validation, rate-limit, etc.)
     const statusCode = error.statusCode ?? 500;
 
     if (statusCode >= 500) {
-      fastify.log.error(error);
+      request.log.error(error, "unhandled error");
     }
 
     return reply.status(statusCode).send({
       error: statusCode >= 500 ? "Internt serverfel" : error.message,
       code: error.code ?? "INTERNAL_ERROR",
       statusCode,
+      requestId: request.id,
     });
   });
 
@@ -111,8 +131,21 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       // dbStatus remains "error"
     }
 
+    const mem = process.memoryUsage();
     const status = dbStatus === "ok" ? "ok" : "degraded";
-    return { status, database: dbStatus, timestamp: new Date().toISOString() };
+
+    return {
+      status,
+      database: dbStatus,
+      timestamp: new Date().toISOString(),
+      uptime: Math.round(process.uptime()),
+      version: process.env["npm_package_version"] ?? "0.1.0",
+      memory: {
+        rss: Math.round(mem.rss / 1024 / 1024),
+        heapUsed: Math.round(mem.heapUsed / 1024 / 1024),
+        heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
+      },
+    };
   });
 
   return fastify;
