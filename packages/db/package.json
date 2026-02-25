@@ -26,6 +26,7 @@
     "studio": "prisma studio",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist",
+    "seed": "tsx prisma/seed.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -39,6 +40,7 @@
     "@types/pg": "^8.16.0",
     "prisma": "^7.4.0",
     "rimraf": "^5.0.5",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^1.2.0"
   }
