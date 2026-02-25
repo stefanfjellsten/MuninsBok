@@ -8,6 +8,7 @@ import type {
   IVoucherRepository,
   IFiscalYearRepository,
   IDocumentRepository,
+  IUserRepository,
 } from "@muninsbok/core/types";
 import {
   type PrismaClient,
@@ -16,6 +17,7 @@ import {
   VoucherRepository,
   FiscalYearRepository,
   DocumentRepository,
+  UserRepository,
 } from "@muninsbok/db";
 
 export interface Repositories {
@@ -24,6 +26,7 @@ export interface Repositories {
   readonly vouchers: IVoucherRepository;
   readonly fiscalYears: IFiscalYearRepository;
   readonly documents: IDocumentRepository;
+  readonly users: IUserRepository;
   readonly prisma: PrismaClient;
 }
 
@@ -35,6 +38,7 @@ export function createRepositories(prisma: PrismaClient): Repositories {
     vouchers: new VoucherRepository(prisma),
     fiscalYears: new FiscalYearRepository(prisma),
     documents: new DocumentRepository(prisma),
+    users: new UserRepository(prisma),
     prisma,
   };
 }
