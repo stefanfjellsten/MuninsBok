@@ -27,8 +27,53 @@ model Organization {
   accounts    Account[]
   vouchers    Voucher[]
   documents   Document[]
+  members     OrganizationMember[]
 
   @@map("organizations")
+}
+
+// ============================================
+// USER
+// ============================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  memberships OrganizationMember[]
+
+  @@map("users")
+}
+
+// ============================================
+// ORGANIZATION MEMBER (user ↔ org with role)
+// ============================================
+
+model OrganizationMember {
+  id             String         @id @default(cuid())
+  userId         String         @map("user_id")
+  organizationId String         @map("organization_id")
+  role           MemberRole     @default(MEMBER)
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("organization_members")
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
 
 // ============================================
