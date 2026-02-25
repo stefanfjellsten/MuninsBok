@@ -19,6 +19,8 @@
     "@fastify/helmet": "11",
     "@fastify/multipart": "^8.1.0",
     "@fastify/rate-limit": "^9.1.0",
+    "@fastify/swagger": "8",
+    "@fastify/swagger-ui": "4",
     "@muninsbok/core": "workspace:*",
     "@muninsbok/db": "workspace:*",
     "dotenv": "^17.3.1",
