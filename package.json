@@ -13,6 +13,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "test": "pnpm -r test",
+    "test:coverage": "pnpm -r --parallel exec vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -21,12 +22,14 @@
     "clean": "pnpm -r clean",
     "db:generate": "pnpm --filter @muninsbok/db generate",
     "db:migrate": "pnpm --filter @muninsbok/db migrate",
-    "db:push": "pnpm --filter @muninsbok/db push"
+    "db:push": "pnpm --filter @muninsbok/db push",
+    "db:seed": "pnpm --filter @muninsbok/db seed"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.58.2",
     "@types/node": "^20.11.0",
+    "@vitest/coverage-v8": "1",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.1",
