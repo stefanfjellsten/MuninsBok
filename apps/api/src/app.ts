@@ -110,8 +110,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await fastify.register(rbac);
   }
 
-  // Optional API key authentication
-  if (options.apiKey) {
+  // Optional API key authentication (legacy / simple setups without JWT)
+  // When JWT is enabled, API key auth is skipped to avoid conflicts.
+  if (options.apiKey && !options.jwtSecret) {
     fastify.addHook("onRequest", async (request, reply) => {
       // Skip auth for health check
       if (request.url === "/health") return;
