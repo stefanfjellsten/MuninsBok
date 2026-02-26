@@ -38,6 +38,27 @@ export type {
 
 const API_BASE = "/api";
 
+// ── Auth types ─────────────────────────────────────────────
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface AuthResponse {
+  data: AuthTokens & { user: AuthUser };
+}
+
+export interface RefreshResponse {
+  data: AuthTokens;
+}
+
 /**
  * Structured API error with status code and optional error code
  */
@@ -59,19 +80,67 @@ export class ApiError extends Error {
     return this.status === 400;
   }
 
+  get isUnauthorized(): boolean {
+    return this.status === 401;
+  }
+
+  get isForbidden(): boolean {
+    return this.status === 403;
+  }
+
   get isServerError(): boolean {
     return this.status >= 500;
   }
 }
 
+// Lazy-loaded auth-storage to avoid circular imports.
+// The module is cheap and only accessed at request time.
+async function getAuthStorage() {
+  return import("./auth-storage");
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+  const storage = await getAuthStorage();
+  const accessToken = storage.getAccessToken();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+
+  // Auto-inject access token unless caller already set Authorization
+  if (accessToken && !headers["Authorization"]) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
+  }
+
+  let response = await fetch(url, { ...options, headers });
+
+  // If 401 and we have a refresh token, attempt silent refresh then retry once
+  if (response.status === 401 && !url.includes("/auth/")) {
+    const refreshToken = storage.getRefreshToken();
+    if (refreshToken) {
+      try {
+        const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        });
+        if (refreshRes.ok) {
+          const { data } = (await refreshRes.json()) as RefreshResponse;
+          storage.setTokens(data.accessToken, data.refreshToken);
+          headers["Authorization"] = `Bearer ${data.accessToken}`;
+          response = await fetch(url, { ...options, headers });
+        } else {
+          // Refresh failed — clear tokens (session expired)
+          storage.clearTokens();
+        }
+      } catch {
+        storage.clearTokens();
+      }
+    }
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
@@ -106,11 +175,15 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  deleteOrganization: (orgId: string) =>
-    fetch(`${API_BASE}/organizations/${orgId}`, { method: "DELETE" }).then((res) => {
-      if (!res.ok)
-        throw new ApiError(res.status, "DELETE_FAILED", "Kunde inte radera organisationen");
-    }),
+  deleteOrganization: async (orgId: string) => {
+    const storage = await getAuthStorage();
+    const token = storage.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/organizations/${orgId}`, { method: "DELETE", headers });
+    if (!res.ok)
+      throw new ApiError(res.status, "DELETE_FAILED", "Kunde inte radera organisationen");
+  },
 
   // Fiscal Years
   getFiscalYears: (orgId: string) =>
@@ -151,12 +224,17 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  deactivateAccount: (orgId: string, accountNumber: string) =>
-    fetch(`${API_BASE}/organizations/${orgId}/accounts/${accountNumber}`, {
+  deactivateAccount: async (orgId: string, accountNumber: string) => {
+    const storage = await getAuthStorage();
+    const token = storage.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/organizations/${orgId}/accounts/${accountNumber}`, {
       method: "DELETE",
-    }).then((res) => {
-      if (!res.ok) throw new ApiError(res.status, "DELETE_FAILED", "Kunde inte inaktivera kontot");
-    }),
+      headers,
+    });
+    if (!res.ok) throw new ApiError(res.status, "DELETE_FAILED", "Kunde inte inaktivera kontot");
+  },
 
   updateAccount: (
     orgId: string,
@@ -356,9 +434,13 @@ export const api = {
   uploadDocument: async (orgId: string, voucherId: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
+    const storage = await getAuthStorage();
+    const token = storage.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     const response = await fetch(
       `${API_BASE}/organizations/${orgId}/vouchers/${voucherId}/documents`,
-      { method: "POST", body: formData },
+      { method: "POST", body: formData, headers },
     );
     if (!response.ok) {
       const errorBody = await response.json().catch(() => ({}));
@@ -374,11 +456,40 @@ export const api = {
   downloadDocumentUrl: (orgId: string, documentId: string) =>
     `${API_BASE}/organizations/${orgId}/documents/${documentId}/download`,
 
-  deleteDocument: (orgId: string, documentId: string) =>
-    fetch(`${API_BASE}/organizations/${orgId}/documents/${documentId}`, { method: "DELETE" }).then(
-      (res) => {
-        if (!res.ok)
-          throw new ApiError(res.status, "DELETE_FAILED", "Kunde inte radera dokumentet");
-      },
-    ),
+  deleteDocument: async (orgId: string, documentId: string) => {
+    const storage = await getAuthStorage();
+    const token = storage.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/organizations/${orgId}/documents/${documentId}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (!res.ok) throw new ApiError(res.status, "DELETE_FAILED", "Kunde inte radera dokumentet");
+  },
+
+  // ── Auth ──────────────────────────────────────────────────
+
+  login: (email: string, password: string) =>
+    fetchJson<AuthResponse>(`${API_BASE}/auth/login`, {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+
+  register: (email: string, name: string, password: string) =>
+    fetchJson<AuthResponse>(`${API_BASE}/auth/register`, {
+      method: "POST",
+      body: JSON.stringify({ email, name, password }),
+    }),
+
+  refreshTokens: (refreshToken: string) =>
+    fetchJson<RefreshResponse>(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${refreshToken}` },
+    }),
+
+  getMe: (accessToken: string) =>
+    fetchJson<ApiResponse<AuthUser>>(`${API_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }),
 };
