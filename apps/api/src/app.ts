@@ -162,6 +162,11 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   // Routes — all org-scoped routes share the org-scope preHandler
   await fastify.register(
     async function orgScoped(instance) {
+      // Require JWT authentication on all org-scoped routes (when enabled)
+      if (options.jwtSecret) {
+        instance.addHook("onRequest", instance.authenticate);
+      }
+
       // Validate `:orgId` exists before any route handler in this scope
       instance.addHook("preHandler", async (request, reply) => {
         const orgId = (request.params as Record<string, string | undefined>)["orgId"];
