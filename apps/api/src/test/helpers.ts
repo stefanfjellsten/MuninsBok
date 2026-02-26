@@ -148,12 +148,13 @@ export function createMockRepos(): MockRepos {
 }
 
 /** Build a Fastify test app with mocked repositories */
-export async function buildTestApp(mocks?: MockRepos) {
+export async function buildTestApp(mocks?: MockRepos, options?: { jwtSecret?: string }) {
   const repos = mocks ?? createMockRepos();
   const documentStorage = createMockDocumentStorage();
   const app = await buildApp({
     repos: repos as unknown as Repositories,
     documentStorage,
+    ...(options?.jwtSecret != null && { jwtSecret: options.jwtSecret }),
   });
   return { app, repos, documentStorage };
 }
