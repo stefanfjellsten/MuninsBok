@@ -8,7 +8,10 @@ import type {
   GeneralLedgerReport,
   IncomeStatement,
   JournalReport,
+  MemberRole,
   Organization,
+  OrgMember,
+  OrgMemberWithUser,
   PaginatedApiResponse,
   TrialBalance,
   VatReport,
@@ -26,7 +29,10 @@ export type {
   GeneralLedgerReport,
   IncomeStatement,
   JournalReport,
+  MemberRole,
   Organization,
+  OrgMember,
+  OrgMemberWithUser,
   Pagination,
   ReportSection,
   TrialBalance,
@@ -492,4 +498,33 @@ export const api = {
     fetchJson<ApiResponse<AuthUser>>(`${API_BASE}/auth/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
+
+  // ── Members ───────────────────────────────────────────────
+
+  getMembers: (orgId: string) =>
+    fetchJson<ApiResponse<OrgMemberWithUser[]>>(`${API_BASE}/organizations/${orgId}/members`),
+
+  addMember: (orgId: string, email: string, role: MemberRole = "MEMBER") =>
+    fetchJson<ApiResponse<OrgMember>>(`${API_BASE}/organizations/${orgId}/members`, {
+      method: "POST",
+      body: JSON.stringify({ email, role }),
+    }),
+
+  updateMemberRole: (orgId: string, userId: string, role: MemberRole) =>
+    fetchJson<ApiResponse<OrgMember>>(`${API_BASE}/organizations/${orgId}/members/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    }),
+
+  removeMember: async (orgId: string, userId: string) => {
+    const storage = await getAuthStorage();
+    const token = storage.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/organizations/${orgId}/members/${userId}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (!res.ok) throw new ApiError(res.status, "DELETE_FAILED", "Kunde inte ta bort medlemmen");
+  },
 };
