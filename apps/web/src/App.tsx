@@ -1,5 +1,7 @@
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import { OrganizationProvider, useOrganization } from "./context/OrganizationContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import styles from "./App.module.css";
 import { OrganizationSelect } from "./components/OrganizationSelect";
 import { lazy, Suspense, useState } from "react";
@@ -41,6 +43,8 @@ const FiscalYears = lazy(() =>
   import("./pages/FiscalYears").then((m) => ({ default: m.FiscalYears })),
 );
 const NotFound = lazy(() => import("./pages/NotFound").then((m) => ({ default: m.NotFound })));
+const Login = lazy(() => import("./pages/Login").then((m) => ({ default: m.Login })));
+const Register = lazy(() => import("./pages/Register").then((m) => ({ default: m.Register })));
 
 function WelcomePage() {
   const { setOrganization } = useOrganization();
@@ -64,6 +68,7 @@ function WelcomePage() {
 
 function AppContent() {
   const { organization, fiscalYear, organizations } = useOrganization();
+  const { logout, user } = useAuth();
 
   return (
     <div className={styles.app}>
@@ -72,7 +77,14 @@ function AppContent() {
       </a>
       <header className={styles.header} role="banner">
         <h1>Munins bok</h1>
-        <OrganizationSelect />
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <OrganizationSelect />
+          {user && (
+            <button className="secondary" onClick={logout} style={{ whiteSpace: "nowrap" }}>
+              Logga ut
+            </button>
+          )}
+        </div>
       </header>
 
       {organizations.length === 0 ? (
@@ -150,8 +162,23 @@ function AppContent() {
 
 export function App() {
   return (
-    <OrganizationProvider>
-      <AppContent />
-    </OrganizationProvider>
+    <AuthProvider>
+      <Suspense fallback={<div className="loading">Laddar…</div>}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <OrganizationProvider>
+                  <AppContent />
+                </OrganizationProvider>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Suspense>
+    </AuthProvider>
   );
 }
