@@ -15,6 +15,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { buildTestApp, type MockRepos } from "../test/helpers.js";
 import type { FastifyInstance } from "fastify";
 import { hashPassword } from "../utils/password.js";
+import type { JwtPayload } from "../plugins/jwt-auth.js";
 
 const TEST_SECRET = "test-secret-that-is-long-enough-for-jwt";
 
@@ -232,7 +233,7 @@ describe("auth E2E flow", () => {
       // Sign a token with exp already in the past
       const now = Math.floor(Date.now() / 1000);
       const expiredToken = app.jwt.sign(
-        { sub: testUser.id, email: testUser.email, type: "access", iat: now - 120, exp: now - 60 } as Record<string, unknown>,
+        { sub: testUser.id, email: testUser.email, type: "access", iat: now - 120, exp: now - 60 } as unknown as JwtPayload,
       );
 
       const res = await app.inject({
@@ -248,7 +249,7 @@ describe("auth E2E flow", () => {
     it("rejects an expired refresh token", async () => {
       const now = Math.floor(Date.now() / 1000);
       const expiredRefresh = app.jwt.sign(
-        { sub: testUser.id, email: testUser.email, type: "refresh", iat: now - 120, exp: now - 60 } as Record<string, unknown>,
+        { sub: testUser.id, email: testUser.email, type: "refresh", iat: now - 120, exp: now - 60 } as unknown as JwtPayload,
       );
 
       const res = await app.inject({
