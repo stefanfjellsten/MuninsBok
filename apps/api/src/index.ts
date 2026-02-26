@@ -31,11 +31,13 @@ const repos = createRepositories(prisma);
 const documentStorage = new DocumentStorage();
 
 const apiKey = process.env["API_KEY"];
+const jwtSecret = process.env["JWT_SECRET"];
 const fastify = await buildApp({
   repos,
   documentStorage,
   corsOrigin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
   ...(apiKey != null && { apiKey }),
+  ...(jwtSecret != null && { jwtSecret }),
   fastifyOptions: {
     logger: isProd ? { level: "info" } : { level: "debug", transport: { target: "pino-pretty" } },
   },
