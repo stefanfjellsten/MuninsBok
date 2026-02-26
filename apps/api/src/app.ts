@@ -13,6 +13,7 @@ import { AppError } from "./utils/app-error.js";
 import requestLogging from "./plugins/request-logging.js";
 import auditLogging from "./plugins/audit-logging.js";
 import jwtAuth from "./plugins/jwt-auth.js";
+import rbac from "./plugins/rbac.js";
 import { organizationRoutes } from "./routes/organizations.js";
 import { voucherRoutes } from "./routes/vouchers.js";
 import { reportRoutes } from "./routes/reports.js";
@@ -22,6 +23,7 @@ import { fiscalYearRoutes } from "./routes/fiscal-years.js";
 import { documentRoutes } from "./routes/documents.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { authRoutes } from "./routes/auth.js";
+import { memberRoutes } from "./routes/members.js";
 import type { Repositories } from "./repositories.js";
 // Side-effect import: augments FastifyRequest with `org` property
 import "./plugins/org-scope.js";
@@ -103,6 +105,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       ...(options.accessTokenTtl != null && { accessTokenTtl: options.accessTokenTtl }),
       ...(options.refreshTokenTtl != null && { refreshTokenTtl: options.refreshTokenTtl }),
     });
+
+    // RBAC — requires jwt-auth to be registered first
+    await fastify.register(rbac);
   }
 
   // Optional API key authentication
@@ -180,7 +185,16 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
         request.org = org;
       });
 
+      // Verify org membership for routes with :orgId (when JWT is enabled)
+      if (options.jwtSecret) {
+        instance.addHook("preHandler", instance.requireMembership);
+      }
+
       await instance.register(organizationRoutes);
+      // Member management requires RBAC (only available with JWT)
+      if (options.jwtSecret) {
+        await instance.register(memberRoutes);
+      }
       await instance.register(voucherRoutes);
       await instance.register(reportRoutes);
       await instance.register(sieRoutes);
