@@ -72,34 +72,26 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   // ── Refresh ─────────────────────────────────────────────────
-  fastify.post(
-    "/refresh",
-    { preHandler: [fastify.verifyRefreshToken] },
-    async (request) => {
-      const { sub, email } = request.user as JwtPayload;
-      const tokens = fastify.generateTokens(sub, email);
-      return { data: tokens };
-    },
-  );
+  fastify.post("/refresh", { preHandler: [fastify.verifyRefreshToken] }, async (request) => {
+    const { sub, email } = request.user as JwtPayload;
+    const tokens = fastify.generateTokens(sub, email);
+    return { data: tokens };
+  });
 
   // ── Me ──────────────────────────────────────────────────────
-  fastify.get(
-    "/me",
-    { preHandler: [fastify.authenticate] },
-    async (request, reply) => {
-      const { sub } = request.user as JwtPayload;
-      const user = await userRepo.findById(sub);
+  fastify.get("/me", { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const { sub } = request.user as JwtPayload;
+    const user = await userRepo.findById(sub);
 
-      if (!user) {
-        return reply.status(404).send({
-          error: "Användaren hittades inte",
-          code: "USER_NOT_FOUND",
-        });
-      }
+    if (!user) {
+      return reply.status(404).send({
+        error: "Användaren hittades inte",
+        code: "USER_NOT_FOUND",
+      });
+    }
 
-      return {
-        data: { id: user.id, email: user.email, name: user.name },
-      };
-    },
-  );
+    return {
+      data: { id: user.id, email: user.email, name: user.name },
+    };
+  });
 }
