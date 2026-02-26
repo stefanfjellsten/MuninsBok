@@ -134,10 +134,10 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
           response = await fetch(url, { ...options, headers });
         } else {
           // Refresh failed — clear tokens (session expired)
-          storage.clearTokens();
+          storage.clearTokens({ notify: true });
         }
       } catch {
-        storage.clearTokens();
+        storage.clearTokens({ notify: true });
       }
     }
   }
