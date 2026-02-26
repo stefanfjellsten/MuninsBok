@@ -51,6 +51,28 @@ describe("ApiError", () => {
       expect(new ApiError(422, "UNPROCESSABLE", "").isServerError).toBe(false);
     });
   });
+
+  describe("isUnauthorized", () => {
+    it("returns true for 401", () => {
+      expect(new ApiError(401, "UNAUTHORIZED", "").isUnauthorized).toBe(true);
+    });
+
+    it("returns false for non-401", () => {
+      expect(new ApiError(400, "BAD_REQUEST", "").isUnauthorized).toBe(false);
+      expect(new ApiError(403, "FORBIDDEN", "").isUnauthorized).toBe(false);
+    });
+  });
+
+  describe("isForbidden", () => {
+    it("returns true for 403", () => {
+      expect(new ApiError(403, "FORBIDDEN", "").isForbidden).toBe(true);
+    });
+
+    it("returns false for non-403", () => {
+      expect(new ApiError(401, "UNAUTHORIZED", "").isForbidden).toBe(false);
+      expect(new ApiError(404, "NOT_FOUND", "").isForbidden).toBe(false);
+    });
+  });
 });
 
 describe("fetchJson", () => {
