@@ -44,6 +44,7 @@ describe("Audit logging plugin", () => {
 
     const auditData = auditCall![0] as Record<string, unknown>;
     expect(auditData["audit"]).toBe(true);
+    expect(auditData["userId"]).toBeNull(); // no JWT in default test app
     expect(auditData["method"]).toBe("POST");
     expect(auditData["url"]).toBe("/api/organizations");
     expect(auditData["statusCode"]).toBeDefined();
@@ -62,5 +63,64 @@ describe("Audit logging plugin", () => {
       (call: unknown[]) => typeof call[0] === "object" && call[0] !== null && "audit" in call[0],
     );
     expect(auditCall).toBeUndefined();
+  });
+
+  it("includes userId when JWT is enabled", async () => {
+    const secret = "test-secret-that-is-long-enough-for-jwt";
+    const authCtx = await buildTestApp(undefined, { jwtSecret: secret });
+    const authApp = authCtx.app;
+    const authRepos = authCtx.repos;
+
+    authRepos.organizations.create.mockResolvedValue({
+      ok: true,
+      value: {
+        id: "org-new",
+        orgNumber: "5591234567",
+        name: "Audit AB",
+        fiscalYearStartMonth: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+    authRepos.accounts.createMany.mockResolvedValue([]);
+    authRepos.users.addMember.mockResolvedValue({
+      id: "mem-1",
+      userId: "user-42",
+      organizationId: "org-new",
+      role: "OWNER",
+      createdAt: new Date(),
+    });
+
+    // Hook must be added BEFORE ready()
+    const logSpy = vi.fn();
+    authApp.addHook("onRequest", async (request) => {
+      const original = request.log.info.bind(request.log);
+      request.log.info = (...args: unknown[]) => {
+        logSpy(...args);
+        return original(...args);
+      };
+    });
+
+    await authApp.ready();
+
+    const { accessToken } = authApp.generateTokens("user-42", "audit@example.com");
+    await authApp.inject({
+      method: "POST",
+      url: "/api/organizations",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      payload: JSON.stringify({ name: "Audit AB", orgNumber: "5591234567" }),
+    });
+
+    const auditCall = logSpy.mock.calls.find(
+      (call: unknown[]) => typeof call[0] === "object" && call[0] !== null && "audit" in call[0],
+    );
+    expect(auditCall).toBeDefined();
+    const auditData = auditCall![0] as Record<string, unknown>;
+    expect(auditData["userId"]).toBe("user-42");
+
+    await authApp.close();
   });
 });
