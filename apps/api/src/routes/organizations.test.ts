@@ -193,6 +193,110 @@ describe("Organization routes", () => {
   });
 });
 
+const TEST_SECRET = "test-secret-that-is-long-enough-for-jwt";
+
+describe("Organization routes (authenticated)", () => {
+  let app: FastifyInstance;
+  let repos: MockRepos;
+
+  beforeEach(async () => {
+    const ctx = await buildTestApp(undefined, { jwtSecret: TEST_SECRET });
+    app = ctx.app;
+    repos = ctx.repos;
+    await app.ready();
+  });
+
+  describe("GET /api/organizations", () => {
+    it("returns only organizations where user is a member", async () => {
+      const memberOrgs = [
+        {
+          id: "1",
+          orgNumber: "5561234567",
+          name: "Min Förening",
+          fiscalYearStartMonth: 1,
+          createdAt: new Date(),
+        },
+      ];
+      repos.organizations.findByUserMembership.mockResolvedValue(memberOrgs);
+
+      const { accessToken } = app.generateTokens("user-1", "test@example.com");
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/organizations",
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).data).toHaveLength(1);
+      expect(repos.organizations.findByUserMembership).toHaveBeenCalledWith("user-1");
+      expect(repos.organizations.findAll).not.toHaveBeenCalled();
+    });
+
+    it("returns empty array when user has no memberships", async () => {
+      repos.organizations.findByUserMembership.mockResolvedValue([]);
+
+      const { accessToken } = app.generateTokens("user-2", "other@example.com");
+      const res = await app.inject({
+        method: "GET",
+        url: "/api/organizations",
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).data).toEqual([]);
+    });
+  });
+
+  describe("POST /api/organizations", () => {
+    it("auto-assigns creator as OWNER", async () => {
+      const org = {
+        id: "new-org",
+        orgNumber: "5561234567",
+        name: "Ny Förening",
+        fiscalYearStartMonth: 1,
+      };
+      repos.organizations.create.mockResolvedValue({ ok: true, value: org });
+      repos.accounts.createMany.mockResolvedValue(50);
+      repos.users.addMember.mockResolvedValue({
+        id: "mem-1",
+        userId: "user-1",
+        organizationId: "new-org",
+        role: "OWNER",
+        createdAt: new Date(),
+      });
+
+      const { accessToken } = app.generateTokens("user-1", "test@example.com");
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/organizations",
+        headers: { authorization: `Bearer ${accessToken}` },
+        payload: { orgNumber: "5561234567", name: "Ny Förening" },
+      });
+
+      expect(res.statusCode).toBe(201);
+      expect(repos.users.addMember).toHaveBeenCalledWith("user-1", "new-org", "OWNER");
+    });
+
+    it("does not call addMember when create fails", async () => {
+      repos.organizations.create.mockResolvedValue({
+        ok: false,
+        error: { code: "INVALID_NAME", message: "Namn måste anges" },
+      });
+
+      const { accessToken } = app.generateTokens("user-1", "test@example.com");
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/organizations",
+        headers: { authorization: `Bearer ${accessToken}` },
+        payload: { orgNumber: "5561234567", name: "Test" },
+      });
+
+      expect(res.statusCode).toBe(400);
+      expect(repos.users.addMember).not.toHaveBeenCalled();
+    });
+  });
+});
+
 describe("Health check", () => {
   it("returns status ok with extended info", async () => {
     const { app } = await buildTestApp();
