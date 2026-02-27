@@ -6,6 +6,7 @@ import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ToastProvider } from "./context/ToastContext";
 import "./index.css";
+import "./print-reports.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
