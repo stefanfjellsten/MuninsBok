@@ -5,7 +5,7 @@ test.describe("Navigation & accessibility", () => {
     await page.goto("/");
     // Press Tab to focus the skip link
     await page.keyboard.press("Tab");
-    const skipLink = page.locator("a.skip-link");
+    const skipLink = page.locator("a[data-testid='skip-link']");
     await expect(skipLink).toBeFocused();
     await expect(skipLink).toContainText("Hoppa till innehåll");
     // The link target should exist

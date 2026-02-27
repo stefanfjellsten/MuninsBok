@@ -73,7 +73,7 @@ function AppContent() {
 
   return (
     <div className={styles.app}>
-      <a href="#main-content" className={styles.skipLink}>
+      <a href="#main-content" className={styles.skipLink} data-testid="skip-link">
         Hoppa till innehåll
       </a>
       <header className={styles.header} role="banner">
