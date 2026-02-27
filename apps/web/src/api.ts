@@ -495,6 +495,8 @@ export const api = {
       headers: { Authorization: `Bearer ${accessToken}` },
     }),
 
+  logout: () => fetchVoid(`${API_BASE}/auth/logout`, { method: "POST" }),
+
   // ── Members ───────────────────────────────────────────────
 
   getMembers: (orgId: string) =>
