@@ -138,3 +138,18 @@ export interface IUserRepository {
   /** Get all organizations a user is a member of (returns SafeUser-scoped data). */
   findOrganizationsByUser(userId: string): Promise<OrganizationMember[]>;
 }
+
+// ── Refresh Token ───────────────────────────────────────────
+
+export interface IRefreshTokenRepository {
+  /** Store a new refresh token (jti = unique token identifier). */
+  create(userId: string, jti: string, expiresAt: Date): Promise<void>;
+  /** Check if a refresh token jti exists (not revoked). */
+  existsByJti(jti: string): Promise<boolean>;
+  /** Revoke a single refresh token by jti. */
+  revokeByJti(jti: string): Promise<void>;
+  /** Revoke all refresh tokens for a user (e.g. on logout / password change). */
+  revokeAllByUserId(userId: string): Promise<void>;
+  /** Delete expired tokens (housekeeping). */
+  cleanupExpired(): Promise<number>;
+}
