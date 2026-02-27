@@ -64,6 +64,7 @@ export function createMockVoucherRepo(): MockedRepo<IVoucherRepository> {
     createCorrection: vi.fn(),
     getNextVoucherNumber: vi.fn(),
     findNumberGaps: vi.fn(),
+    isVoucherInClosedFiscalYear: vi.fn().mockResolvedValue(false),
   } as MockedRepo<IVoucherRepository>;
 }
 
@@ -96,6 +97,7 @@ export function createMockUserRepo(): MockedRepo<IUserRepository> {
     findMembersByOrganization: vi.fn(),
     findMembership: vi.fn(),
     addMember: vi.fn(),
+    updateMemberRole: vi.fn(),
     removeMember: vi.fn(),
     findOrganizationsByUser: vi.fn(),
   } as MockedRepo<IUserRepository>;
