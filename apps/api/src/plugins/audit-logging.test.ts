@@ -94,7 +94,8 @@ describe("Audit logging plugin", () => {
     // Hook must be added BEFORE ready()
     const logSpy = vi.fn();
     authApp.addHook("onRequest", async (request) => {
-      const original = request.log.info.bind(request.log);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- wrapping Pino's overloaded .info()
+      const original = request.log.info.bind(request.log) as (...a: any[]) => void;
       request.log.info = (...args: unknown[]) => {
         logSpy(...args);
         return original(...args);
