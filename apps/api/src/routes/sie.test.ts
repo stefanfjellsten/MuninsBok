@@ -12,7 +12,19 @@ vi.mock("@muninsbok/core/sie", async (importOriginal) => {
   };
 });
 
+// Mock @muninsbok/db so that AccountRepository / VoucherRepository
+// constructors return the test's mock repos (set up in beforeEach).
+vi.mock("@muninsbok/db", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    AccountRepository: vi.fn(),
+    VoucherRepository: vi.fn(),
+  };
+});
+
 import { parseSie } from "@muninsbok/core/sie";
+import { AccountRepository, VoucherRepository } from "@muninsbok/db";
 const mockParseSie = parseSie as unknown as ReturnType<typeof vi.fn>;
 
 describe("SIE routes", () => {
@@ -37,6 +49,15 @@ describe("SIE routes", () => {
     const ctx = await buildTestApp();
     app = ctx.app;
     repos = ctx.repos;
+
+    // Wire mocked constructors so new AccountRepository(tx) / VoucherRepository(tx)
+    // inside the $transaction callback return the test's mock repos.
+    (AccountRepository as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      () => repos.accounts,
+    );
+    (VoucherRepository as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      () => repos.vouchers,
+    );
   });
 
   describe("GET /:orgId/sie/export", () => {
