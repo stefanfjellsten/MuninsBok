@@ -252,4 +252,18 @@ export class VoucherRepository implements IVoucherRepository {
 
     return gaps;
   }
+
+  async isVoucherInClosedFiscalYear(voucherId: string, organizationId: string): Promise<boolean> {
+    const voucher = await this.prisma.voucher.findFirst({
+      where: { id: voucherId, organizationId },
+      select: { fiscalYearId: true },
+    });
+    if (!voucher) return false;
+
+    const fiscalYear = await this.prisma.fiscalYear.findFirst({
+      where: { id: voucher.fiscalYearId, organizationId },
+      select: { isClosed: true },
+    });
+    return fiscalYear?.isClosed === true;
+  }
 }
