@@ -122,6 +122,7 @@ export interface MockPrisma {
   fiscalYear: MockPrismaModel;
   voucher: MockPrismaModel;
   $queryRaw: ReturnType<typeof vi.fn>;
+  $transaction: ReturnType<typeof vi.fn>;
   [model: string]: MockPrismaModel | ReturnType<typeof vi.fn>;
 }
 
@@ -146,6 +147,19 @@ export function createMockDocumentStorage() {
 }
 
 export function createMockRepos(): MockRepos {
+  const prisma: MockPrisma = {
+    organization: { findUnique: vi.fn() },
+    fiscalYear: { findFirst: vi.fn() },
+    voucher: { findFirst: vi.fn() },
+    $queryRaw: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
+    $transaction: vi.fn(),
+  };
+
+  // Default: $transaction executes its callback with the mock prisma itself
+  (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((fn: unknown) =>
+    (fn as (...args: unknown[]) => unknown)(prisma),
+  );
+
   return {
     organizations: createMockOrganizationRepo(),
     accounts: createMockAccountRepo(),
@@ -154,12 +168,7 @@ export function createMockRepos(): MockRepos {
     documents: createMockDocumentRepo(),
     users: createMockUserRepo(),
     refreshTokens: createMockRefreshTokenRepo(),
-    prisma: {
-      organization: { findUnique: vi.fn() },
-      fiscalYear: { findFirst: vi.fn() },
-      voucher: { findFirst: vi.fn() },
-      $queryRaw: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
-    },
+    prisma,
   };
 }
 
