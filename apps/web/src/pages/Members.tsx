@@ -87,7 +87,7 @@ export function Members() {
     },
   });
 
-  const members = membersQuery.data?.data ?? [];
+  const members: OrgMemberWithUser[] = membersQuery.data?.data ?? [];
 
   function handleAddSubmit(e: FormEvent) {
     e.preventDefault();
