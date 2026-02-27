@@ -69,9 +69,10 @@ Se `LICENSE`.
 
 | Lager | Teknik |
 |-------|--------|
-| **Frontend** | React 18 + Vite 5 + TypeScript 5.3 |
-| **Backend** | Node.js 20 + Fastify 4 + TypeScript |
+| **Frontend** | React 19 + Vite 5 + TypeScript 5.9 |
+| **Backend** | Node.js 25 + Fastify 5 + TypeScript |
 | **Databas** | PostgreSQL 16+ (Prisma 7.4) |
+| **Auth** | JWT (access + refresh) med jti-baserad tokenåterkallning |
 | **Monorepo** | pnpm workspaces |
 | **Test** | Vitest |
 | **Deploy** | Docker Compose |
@@ -83,7 +84,7 @@ Se `LICENSE`.
 ### Förutsättningar
 
 - Node.js 20+
-- pnpm 8+
+- pnpm 9+
 - PostgreSQL 16+ (eller Docker)
 
 ### Lokal utveckling
@@ -168,15 +169,14 @@ muninsbok/
 
 ## Teststatus
 
-**360+ enhetstester** fördelade på ~25 testfiler + **E2E-tester** med Playwright:
+**500+ enhetstester** fördelade på ~30 testfiler:
 
 | Paket | Testfiler | Tester | Vad som testas |
 |-------|-----------|--------|----------------|
-| `@muninsbok/core` | 14 | 208 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES) |
+| `@muninsbok/core` | 14 | 212 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES) |
 | `@muninsbok/db` | 1 | 17 | Prisma→domän-mappers (organisation, räkenskapsår, konto, verifikat, verifikatrad, dokument) |
-| `@muninsbok/api` | 6 | 82 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat), rapporter, health check, felhantering |
-| `@muninsbok/web` | 4 | 53 | ApiError-klass, fetchJson, verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering |
-| E2E (Playwright) | 2 | 12 | Smoke-tester, navigation, tillgänglighet, API-endpoint-validering, CORS |
+| `@muninsbok/api` | 8 | 207 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat), rapporter, health check, felhantering, auth (register/login/refresh/logout), tokenåterkallning, rollhantering, audit-logging |
+| `@muninsbok/web` | 4 | 72 | ApiError-klass, fetchJson, verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering |
 
 ---
 
