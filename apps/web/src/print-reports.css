@@ -1,0 +1,73 @@
+/**
+ * Print-specific styles for financial reports.
+ * Imported globally — applies when any report page is printed.
+ */
+
+@media print {
+  /* Report header: company + period info visible */
+  .report-header {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  /* Hide interactive controls: filters, date pickers, export, pagination */
+  select,
+  .pagination,
+  .filters,
+  nav {
+    display: none !important;
+  }
+
+  /* Report tables: ensure amounts are right-aligned, prevent orphaned rows */
+  .amount {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  /* Section totals: bold bottom border */
+  tr.section-total td,
+  tfoot td {
+    font-weight: bold;
+    border-top: 2px solid #000;
+  }
+
+  /* Page break management */
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Each report card = its own section */
+  .card + .card {
+    page-break-before: auto;
+  }
+
+  /* Fiscal year selector and action buttons hidden (already covered by global
+     button rule, but be explicit for flex wrappers) */
+  .flex.justify-between {
+    break-inside: avoid;
+  }
+
+  /* Loading / error states: hide if somehow visible */
+  .loading,
+  .empty {
+    display: none !important;
+  }
+}
