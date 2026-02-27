@@ -234,16 +234,8 @@ describe("RBAC + org membership", () => {
         role: "ADMIN",
         createdAt: new Date(),
       });
-      // Target membership exists
-      repos.users.findMembership.mockResolvedValueOnce({
-        id: "mem-2",
-        userId: "user-2",
-        organizationId: "org-1",
-        role: "MEMBER",
-        createdAt: new Date(),
-      });
-      repos.users.removeMember.mockResolvedValueOnce(true);
-      repos.users.addMember.mockResolvedValueOnce({
+      // updateMemberRole returns the updated membership atomically
+      repos.users.updateMemberRole.mockResolvedValueOnce({
         id: "mem-3",
         userId: "user-2",
         organizationId: "org-1",
