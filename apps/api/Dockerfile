@@ -55,6 +55,9 @@ RUN pnpm install --frozen-lockfile --prod
 # Generate Prisma client in production
 RUN pnpm --filter @muninsbok/db exec prisma generate
 
+# Run as non-root user
+USER node
+
 EXPOSE 3000
 
 # Run migrations and start server
