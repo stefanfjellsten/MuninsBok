@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import type { Organization } from "../api";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 import dialogStyles from "./Dialog.module.css";
 
 interface Props {
@@ -32,6 +33,16 @@ export function CreateOrganizationDialog({ open, onClose, onCreated }: Props) {
   const [startMonth, setStartMonth] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
+  const handleClose = useCallback(() => {
+    setOrgNumber("");
+    setName("");
+    setStartMonth(1);
+    setError(null);
+    onClose();
+  }, [onClose]);
+
+  const dialogRef = useDialogFocus(open, handleClose);
+
   const mutation = useMutation({
     mutationFn: () =>
       api.createOrganization({
@@ -42,20 +53,12 @@ export function CreateOrganizationDialog({ open, onClose, onCreated }: Props) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       onCreated(data.data);
-      resetAndClose();
+      handleClose();
     },
     onError: (err: Error) => {
       setError(err.message);
     },
   });
-
-  const resetAndClose = () => {
-    setOrgNumber("");
-    setName("");
-    setStartMonth(1);
-    setError(null);
-    onClose();
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,11 +82,19 @@ export function CreateOrganizationDialog({ open, onClose, onCreated }: Props) {
   if (!open) return null;
 
   return (
-    <div className={dialogStyles.overlay} onClick={resetAndClose}>
-      <div className={dialogStyles.dialog} onClick={(e) => e.stopPropagation()}>
+    <div className={dialogStyles.overlay} onClick={handleClose}>
+      <div
+        ref={dialogRef}
+        className={dialogStyles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-org-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={dialogStyles.header}>
-          <h3>Skapa ny organisation</h3>
-          <button className="btn-icon" onClick={resetAndClose} type="button">
+          <h3 id="create-org-title">Skapa ny organisation</h3>
+          <button className="btn-icon" onClick={handleClose} type="button" aria-label="Stäng">
             ×
           </button>
         </div>
@@ -134,7 +145,7 @@ export function CreateOrganizationDialog({ open, onClose, onCreated }: Props) {
           </div>
 
           <div className={dialogStyles.actions}>
-            <button type="button" className="secondary" onClick={resetAndClose}>
+            <button type="button" className="secondary" onClick={handleClose}>
               Avbryt
             </button>
             <button type="submit" disabled={mutation.isPending}>

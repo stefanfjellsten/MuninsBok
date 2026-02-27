@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
 import type { Organization, FiscalYear } from "../api";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 import dialogStyles from "./Dialog.module.css";
 
 interface Props {
@@ -50,6 +51,15 @@ export function CreateFiscalYearDialog({
   const [startDate, setStartDate] = useState(defaultDates.start);
   const [endDate, setEndDate] = useState(defaultDates.end);
 
+  const handleClose = useCallback(() => {
+    setStartDate(defaultDates.start);
+    setEndDate(defaultDates.end);
+    setError(null);
+    onClose();
+  }, [onClose, defaultDates]);
+
+  const dialogRef = useDialogFocus(open, handleClose);
+
   const mutation = useMutation({
     mutationFn: async () => {
       const created = await api.createFiscalYear(organization.id, { startDate, endDate });
@@ -73,19 +83,12 @@ export function CreateFiscalYearDialog({
       queryClient.invalidateQueries({ queryKey: ["fiscalYears", organization.id] });
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
       onCreated(data.data);
-      resetAndClose();
+      handleClose();
     },
     onError: (err: Error) => {
       setError(err.message);
     },
   });
-
-  const resetAndClose = () => {
-    setStartDate(defaultDates.start);
-    setEndDate(defaultDates.end);
-    setError(null);
-    onClose();
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,11 +116,19 @@ export function CreateFiscalYearDialog({
   if (!open) return null;
 
   return (
-    <div className={dialogStyles.overlay} onClick={resetAndClose}>
-      <div className={dialogStyles.dialog} onClick={(e) => e.stopPropagation()}>
+    <div className={dialogStyles.overlay} onClick={handleClose}>
+      <div
+        ref={dialogRef}
+        className={dialogStyles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-fy-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={dialogStyles.header}>
-          <h3>Nytt räkenskapsår</h3>
-          <button className="btn-icon" onClick={resetAndClose} type="button">
+          <h3 id="create-fy-title">Nytt räkenskapsår</h3>
+          <button className="btn-icon" onClick={handleClose} type="button" aria-label="Stäng">
             ×
           </button>
         </div>
@@ -169,7 +180,7 @@ export function CreateFiscalYearDialog({
           )}
 
           <div className={dialogStyles.actions}>
-            <button type="button" className="secondary" onClick={resetAndClose}>
+            <button type="button" className="secondary" onClick={handleClose}>
               Avbryt
             </button>
             <button type="submit" disabled={mutation.isPending}>

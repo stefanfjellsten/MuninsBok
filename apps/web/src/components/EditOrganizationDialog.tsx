@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Organization } from "../api";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 import dialogStyles from "./Dialog.module.css";
 
 interface Props {
@@ -30,6 +31,9 @@ export function EditOrganizationDialog({ open, onClose, organization, onUpdated 
   const [name, setName] = useState(organization.name);
   const [startMonth, setStartMonth] = useState(organization.fiscalYearStartMonth);
   const [error, setError] = useState<string | null>(null);
+
+  const handleClose = useCallback(() => onClose(), [onClose]);
+  const dialogRef = useDialogFocus(open, handleClose);
 
   // Sync state when dialog opens or organization changes
   useEffect(() => {
@@ -68,10 +72,18 @@ export function EditOrganizationDialog({ open, onClose, organization, onUpdated 
 
   return (
     <div className={dialogStyles.overlay} onClick={onClose}>
-      <div className={dialogStyles.dialog} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className={dialogStyles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-org-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={dialogStyles.header}>
-          <h3>Redigera organisation</h3>
-          <button className="btn-icon" onClick={onClose} type="button">
+          <h3 id="edit-org-title">Redigera organisation</h3>
+          <button className="btn-icon" onClick={onClose} type="button" aria-label="Stäng">
             ×
           </button>
         </div>

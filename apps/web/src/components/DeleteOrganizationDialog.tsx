@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
+import { useDialogFocus } from "../hooks/useDialogFocus";
 import dialogStyles from "./Dialog.module.css";
 
 interface Props {
@@ -22,23 +23,25 @@ export function DeleteOrganizationDialog({
   const [confirmName, setConfirmName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const handleClose = useCallback(() => {
+    setConfirmName("");
+    setError(null);
+    onClose();
+  }, [onClose]);
+
+  const dialogRef = useDialogFocus(open, handleClose);
+
   const mutation = useMutation({
     mutationFn: () => api.deleteOrganization(organizationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       onDeleted();
-      resetAndClose();
+      handleClose();
     },
     onError: (err: Error) => {
       setError(err.message);
     },
   });
-
-  const resetAndClose = () => {
-    setConfirmName("");
-    setError(null);
-    onClose();
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,11 +54,19 @@ export function DeleteOrganizationDialog({
   if (!open) return null;
 
   return (
-    <div className={dialogStyles.overlay} onClick={resetAndClose}>
-      <div className={dialogStyles.dialog} onClick={(e) => e.stopPropagation()}>
+    <div className={dialogStyles.overlay} onClick={handleClose}>
+      <div
+        ref={dialogRef}
+        className={dialogStyles.dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-org-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={dialogStyles.header}>
-          <h3>Radera organisation</h3>
-          <button className="btn-icon" onClick={resetAndClose} type="button">
+          <h3 id="delete-org-title">Radera organisation</h3>
+          <button className="btn-icon" onClick={handleClose} type="button" aria-label="Stäng">
             ×
           </button>
         </div>
@@ -83,7 +94,7 @@ export function DeleteOrganizationDialog({
           </div>
 
           <div className={dialogStyles.actions}>
-            <button type="button" className="secondary" onClick={resetAndClose}>
+            <button type="button" className="secondary" onClick={handleClose}>
               Avbryt
             </button>
             <button type="submit" disabled={!canDelete || mutation.isPending} className="danger">
