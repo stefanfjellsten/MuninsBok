@@ -84,6 +84,8 @@ export interface IVoucherRepository {
   ): Promise<Result<Voucher, VoucherError>>;
   getNextVoucherNumber(fiscalYearId: string): Promise<number>;
   findNumberGaps(fiscalYearId: string, organizationId: string): Promise<number[]>;
+  /** Check if a voucher belongs to a closed fiscal year. */
+  isVoucherInClosedFiscalYear(voucherId: string, organizationId: string): Promise<boolean>;
 }
 
 // ── FiscalYear ──────────────────────────────────────────────
@@ -133,6 +135,12 @@ export interface IUserRepository {
   findMembership(userId: string, organizationId: string): Promise<OrganizationMember | null>;
   /** Add a user to an organization with a given role. */
   addMember(userId: string, organizationId: string, role: MemberRole): Promise<OrganizationMember>;
+  /** Atomically update a member's role. */
+  updateMemberRole(
+    userId: string,
+    organizationId: string,
+    role: MemberRole,
+  ): Promise<OrganizationMember | null>;
   /** Remove a user from an organization. */
   removeMember(userId: string, organizationId: string): Promise<boolean>;
   /** Get all organizations a user is a member of (returns SafeUser-scoped data). */
