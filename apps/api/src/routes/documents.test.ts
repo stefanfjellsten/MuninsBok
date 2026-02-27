@@ -95,14 +95,7 @@ describe("Document routes", () => {
 
     it("returns 403 when deleting document in closed fiscal year", async () => {
       repos.documents.findById.mockResolvedValue(sampleDoc);
-
-      // Mock the prisma chain: voucher found → fiscal year is closed
-      repos.prisma.voucher = {
-        findFirst: vi.fn().mockResolvedValue({ fiscalYearId: "fy-1" }),
-      };
-      repos.prisma.fiscalYear = {
-        findFirst: vi.fn().mockResolvedValue({ isClosed: true }),
-      };
+      repos.vouchers.isVoucherInClosedFiscalYear.mockResolvedValue(true);
 
       const res = await app.inject({
         method: "DELETE",
@@ -115,14 +108,7 @@ describe("Document routes", () => {
 
     it("returns 204 on successful delete", async () => {
       repos.documents.findById.mockResolvedValue(sampleDoc);
-
-      // Voucher exists but fiscal year is NOT closed
-      repos.prisma.voucher = {
-        findFirst: vi.fn().mockResolvedValue({ fiscalYearId: "fy-1" }),
-      };
-      repos.prisma.fiscalYear = {
-        findFirst: vi.fn().mockResolvedValue({ isClosed: false }),
-      };
+      repos.vouchers.isVoucherInClosedFiscalYear.mockResolvedValue(false);
       repos.documents.delete.mockResolvedValue(undefined);
 
       const res = await app.inject({
