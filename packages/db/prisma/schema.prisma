@@ -114,6 +114,7 @@ model FiscalYear {
   vouchers     Voucher[]
 
   @@unique([organizationId, startDate])
+  @@index([organizationId])
   @@map("fiscal_years")
 }
 
@@ -198,6 +199,7 @@ model VoucherLine {
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([voucherId])
+  @@index([accountId])
   @@index([accountNumber])
   @@map("voucher_lines")
 }
