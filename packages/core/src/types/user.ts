@@ -5,7 +5,7 @@ export interface User {
   readonly id: string;
   readonly email: string;
   readonly name: string;
-  /** Argon2-hash — never expose outside the backend */
+  /** scrypt-hash — never expose outside the backend */
   readonly passwordHash: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;

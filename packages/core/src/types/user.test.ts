@@ -8,7 +8,7 @@ describe("User types", () => {
     id: "user-1",
     email: "anna@example.com",
     name: "Anna Svensson",
-    passwordHash: "$argon2id$v=19$m=65536,t=3,p=4$hash",
+    passwordHash: "$scrypt$N=16384,r=8,p=1$c2FsdA$aGFzaA",
     createdAt: now,
     updatedAt: now,
   };
@@ -17,7 +17,7 @@ describe("User types", () => {
     expect(user.id).toBe("user-1");
     expect(user.email).toBe("anna@example.com");
     expect(user.name).toBe("Anna Svensson");
-    expect(user.passwordHash).toContain("argon2");
+    expect(user.passwordHash).toContain("scrypt");
     expect(user.createdAt).toBeInstanceOf(Date);
     expect(user.updatedAt).toBeInstanceOf(Date);
   });
