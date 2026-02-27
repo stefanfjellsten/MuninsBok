@@ -232,9 +232,13 @@ describe("auth E2E flow", () => {
     it("rejects an expired access token", async () => {
       // Sign a token with exp already in the past
       const now = Math.floor(Date.now() / 1000);
-      const expiredToken = app.jwt.sign(
-        { sub: testUser.id, email: testUser.email, type: "access", iat: now - 120, exp: now - 60 } as unknown as JwtPayload,
-      );
+      const expiredToken = app.jwt.sign({
+        sub: testUser.id,
+        email: testUser.email,
+        type: "access",
+        iat: now - 120,
+        exp: now - 60,
+      } as unknown as JwtPayload);
 
       const res = await app.inject({
         method: "GET",
@@ -248,9 +252,13 @@ describe("auth E2E flow", () => {
 
     it("rejects an expired refresh token", async () => {
       const now = Math.floor(Date.now() / 1000);
-      const expiredRefresh = app.jwt.sign(
-        { sub: testUser.id, email: testUser.email, type: "refresh", iat: now - 120, exp: now - 60 } as unknown as JwtPayload,
-      );
+      const expiredRefresh = app.jwt.sign({
+        sub: testUser.id,
+        email: testUser.email,
+        type: "refresh",
+        iat: now - 120,
+        exp: now - 60,
+      } as unknown as JwtPayload);
 
       const res = await app.inject({
         method: "POST",
