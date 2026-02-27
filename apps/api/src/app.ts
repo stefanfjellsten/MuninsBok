@@ -127,34 +127,36 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   }
 
   // Global error handler — structured JSON for all errors
-  fastify.setErrorHandler((error: Error & { statusCode?: number; code?: string }, request, reply) => {
-    // AppError carries its own status code and error code
-    if (error instanceof AppError) {
-      if (error.statusCode >= 500) {
+  fastify.setErrorHandler(
+    (error: Error & { statusCode?: number; code?: string }, request, reply) => {
+      // AppError carries its own status code and error code
+      if (error instanceof AppError) {
+        if (error.statusCode >= 500) {
+          request.log.error(error, "unhandled error");
+        }
+        return reply.status(error.statusCode).send({
+          error: error.message,
+          code: error.code,
+          statusCode: error.statusCode,
+          requestId: request.id,
+        });
+      }
+
+      // Fastify / plugin errors (validation, rate-limit, etc.)
+      const statusCode = error.statusCode ?? 500;
+
+      if (statusCode >= 500) {
         request.log.error(error, "unhandled error");
       }
-      return reply.status(error.statusCode).send({
-        error: error.message,
-        code: error.code,
-        statusCode: error.statusCode,
+
+      return reply.status(statusCode).send({
+        error: statusCode >= 500 ? "Internt serverfel" : error.message,
+        code: error.code ?? "INTERNAL_ERROR",
+        statusCode,
         requestId: request.id,
       });
-    }
-
-    // Fastify / plugin errors (validation, rate-limit, etc.)
-    const statusCode = error.statusCode ?? 500;
-
-    if (statusCode >= 500) {
-      request.log.error(error, "unhandled error");
-    }
-
-    return reply.status(statusCode).send({
-      error: statusCode >= 500 ? "Internt serverfel" : error.message,
-      code: error.code ?? "INTERNAL_ERROR",
-      statusCode,
-      requestId: request.id,
-    });
-  });
+    },
+  );
 
   // Decorate with repositories so routes can access them
   fastify.decorate("repos", options.repos);
