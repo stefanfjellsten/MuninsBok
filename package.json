@@ -23,7 +23,8 @@
     "db:generate": "pnpm --filter @muninsbok/db generate",
     "db:migrate": "pnpm --filter @muninsbok/db migrate",
     "db:push": "pnpm --filter @muninsbok/db push",
-    "db:seed": "pnpm --filter @muninsbok/db seed"
+    "db:seed": "pnpm --filter @muninsbok/db seed",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -32,6 +33,8 @@
     "@vitest/coverage-v8": "1",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1"
@@ -39,6 +42,15 @@
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "packageManager": "pnpm@8.15.0"
 }
