@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { loginViaStorage } from "./helpers/auth";
+import { loginViaUI } from "./helpers/auth";
 
 test.describe("Smoke tests", () => {
   test("app loads and shows header", async ({ page }) => {
@@ -17,8 +17,7 @@ test.describe("Smoke tests", () => {
   });
 
   test("welcome page shows create button when no org exists", async ({ page, request }) => {
-    await loginViaStorage(page, request);
-    await page.goto("/");
+    await loginViaUI(page, request);
     const createBtn = page.getByText("Skapa organisation");
     await expect(createBtn).toBeVisible();
   });

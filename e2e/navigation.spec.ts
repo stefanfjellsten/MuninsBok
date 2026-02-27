@@ -1,14 +1,14 @@
 import { test, expect } from "@playwright/test";
-import { loginViaStorage } from "./helpers/auth";
+import { loginViaUI } from "./helpers/auth";
 
 test.describe("Navigation & accessibility", () => {
   test("skip link is visible on Tab and targets main content", async ({ page, request }) => {
-    await loginViaStorage(page, request);
-    await page.goto("/");
-    await page.waitForSelector("[data-testid='skip-link']");
+    await loginViaUI(page, request);
+    // After loginViaUI we are on the authenticated app
+    const skipLink = page.locator("a[data-testid='skip-link']");
+    await expect(skipLink).toBeAttached();
     // Press Tab to focus the skip link
     await page.keyboard.press("Tab");
-    const skipLink = page.locator("a[data-testid='skip-link']");
     await expect(skipLink).toBeFocused();
     await expect(skipLink).toContainText("Hoppa till innehåll");
     // The link target should exist
@@ -17,9 +17,7 @@ test.describe("Navigation & accessibility", () => {
   });
 
   test("page has proper ARIA landmarks", async ({ page, request }) => {
-    await loginViaStorage(page, request);
-    await page.goto("/");
-    await page.waitForSelector("[role='banner']");
+    await loginViaUI(page, request);
     // Banner role on header
     const banner = page.locator("[role='banner']");
     await expect(banner).toBeAttached();
