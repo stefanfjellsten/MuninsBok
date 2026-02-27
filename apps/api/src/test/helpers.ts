@@ -34,6 +34,7 @@ export function createMockOrganizationRepo(): MockedRepo<IOrganizationRepository
     findById: vi.fn().mockResolvedValue(DEFAULT_ORG),
     findByOrgNumber: vi.fn(),
     findAll: vi.fn(),
+    findByUserMembership: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
