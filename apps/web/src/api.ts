@@ -13,6 +13,7 @@ import type {
   OrgMember,
   OrgMemberWithUser,
   PaginatedApiResponse,
+  SkVatDeclarationResponse,
   TrialBalance,
   VatReport,
   Voucher,
@@ -35,6 +36,7 @@ export type {
   OrgMemberWithUser,
   Pagination,
   ReportSection,
+  SkVatDeclarationResponse,
   TrialBalance,
   VatReport,
   Voucher,
@@ -366,6 +368,21 @@ export const api = {
     }
     return fetchJson<ApiResponse<VatReport>>(
       `${API_BASE}/organizations/${orgId}/reports/vat?${params}`,
+    );
+  },
+
+  getVatDeclaration: (
+    orgId: string,
+    fiscalYearId: string,
+    dateRange?: { startDate: string; endDate: string },
+  ) => {
+    const params = new URLSearchParams({ fiscalYearId });
+    if (dateRange) {
+      params.set("startDate", dateRange.startDate);
+      params.set("endDate", dateRange.endDate);
+    }
+    return fetchJson<ApiResponse<SkVatDeclarationResponse>>(
+      `${API_BASE}/organizations/${orgId}/reports/vat-declaration?${params}`,
     );
   },
 
