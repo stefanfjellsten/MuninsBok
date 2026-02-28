@@ -44,3 +44,10 @@ export {
   type PeriodRow,
   type PeriodType,
 } from "./period-report.js";
+
+export {
+  calculateClosingPreview,
+  type ClosingPreview,
+  type ClosingEntryLine,
+  type ClosingPreviewSection,
+} from "./closing-preview.js";
