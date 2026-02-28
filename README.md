@@ -18,38 +18,71 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 
 ---
 
-## Mål (och icke-mål)
+## Funktioner
 
-### Mål
-- Bokföring via verifikat (dubbel bokföring).
-- Kontoplan med BAS som standard.
-- Rapporter:
-  - Balansräkning
-  - Resultaträkning
-  - Råbalans (trial balance)
-  - Momsrapport
-  - Grundbok (journal)
-  - Huvudbok (general ledger)
-  - Verifikationslista
-- Import/export:
-  - SIE4 (med IB/UB/RES)
-  - CSV (alla rapporter)
+### Bokföring
+- Dubbel bokföring via verifikat
+- Kontoplan med förenklad BAS som standard
 - Rättelseverifikat (BFL 5:5)
 - Löpnumrering med luckkontroll (BFL 5:6)
-- Dokumenthantering (bifoga underlag)
-- Dashboard med översikt
-- Datumfilter på rapporter
-- Sökfunktion för verifikat
-- API-nyckelautentisering
-- Rate limiting
-- Självhostbar via Docker.
+- Dokumenthantering (bifoga underlag till verifikat)
+- Sökfunktion och paginering för verifikat
 
-### Icke-mål (i början)
+### Rapporter
+- Råbalans (trial balance)
+- Resultaträkning
+- Balansräkning
+- Momsrapport
+- SKV Momsdeklaration (SKV 4700 — alla rutor)
+- Periodrapport (månads- eller kvartalsvy med diagram och jämförelsetabell)
+- Grundbok (journal)
+- Huvudbok (general ledger)
+- Verifikationslista
+- Dashboard med översikt, månadstrend och nyckeltal
+- Datumfilter på alla rapporter
+- CSV-export och utskrift på alla rapporter
+
+### Årsbokslut
+- Boksluts-förhandsvisning — visar exakt vilka bokslutsposter som skapas innan du stänger
+- Automatisk nollställning av resultaträkningskonton mot 2099 (Årets resultat)
+- Balanskontroll av bokslutsverifikatet
+- Stängning av räkenskapsår med bokslutsverifikat
+- Ingående balanser (IB) från föregående år
+
+### Import/export
+- SIE4 (med IB/UB/RES)
+- CSV (alla rapporter)
+
+### Autentisering & säkerhet
+- JWT-autentisering (access + refresh-tokens med jti-baserad återkallning)
+- Rollbaserad behörighet (OWNER / ADMIN / MEMBER)
+- Audit-logging
+- Rate limiting
+- Input-sanitering
+- Helmet-headers
+
+### Drift
+- Självhostbar via Docker Compose
+- Health check-endpoint
+- Swagger/OpenAPI-dokumentation
+
+---
+
+## Framtida funktioner
+
+Följande funktioner är planerade men ännu inte implementerade:
+
+- **Verifikatmallar** — spara och återanvänd vanliga bokföringshändelser (t.ex. månadshyra, lön)
+- **Budget** — budgetera per konto och period, jämför utfall mot budget i rapporter
+- **Kontoanalys** — djupanalys per konto med grafer, trender och saldo över tid
+- **PDF-export** — generera tryckfärdiga rapporter i PDF-format
+- **Resultatdisposition** — automatisk bokning av 2099 → 2091 (balanserat resultat) efter årsbokslut
+
+### Icke-mål (för närvarande)
 - Bankkoppling
 - Fakturering
 - OCR/kvitto-tolkning
 - Komplett attestflöde
-- “Enterprise”-roller och behörigheter
 
 ---
 
@@ -169,14 +202,14 @@ muninsbok/
 
 ## Teststatus
 
-**500+ enhetstester** fördelade på ~30 testfiler:
+**584 enhetstester** fördelade på 49 testfiler:
 
 | Paket | Testfiler | Tester | Vad som testas |
 |-------|-----------|--------|----------------|
-| `@muninsbok/core` | 14 | 212 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES) |
+| `@muninsbok/core` | 18 | 258 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, SKV 4700, periodrapport, boksluts-förhandsvisning, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES) |
 | `@muninsbok/db` | 1 | 17 | Prisma→domän-mappers (organisation, räkenskapsår, konto, verifikat, verifikatrad, dokument) |
-| `@muninsbok/api` | 8 | 207 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat), rapporter, health check, felhantering, auth (register/login/refresh/logout), tokenåterkallning, rollhantering, audit-logging |
-| `@muninsbok/web` | 4 | 72 | ApiError-klass, fetchJson, verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering |
+| `@muninsbok/api` | 24 | 232 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat, räkenskapsår), rapporter (9 st + dashboard), boksluts-förhandsvisning, health check, felhantering, auth (register/login/refresh/logout), tokenåterkallning, rollhantering, RBAC, audit-logging, rate limiting, input-sanitering, helmet, swagger |
+| `@muninsbok/web` | 6 | 77 | ApiError-klass, fetchJson, auth-storage, verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering, CSV-export, assert-utils |
 
 ---
 
