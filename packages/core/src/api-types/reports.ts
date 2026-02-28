@@ -297,6 +297,57 @@ export interface PeriodReportResponse {
   generatedAt: string;
 }
 
+// --- Closing Preview (Boksluts-förhandsvisning) ---
+
+export interface ClosingEntryLineResponse {
+  accountNumber: string;
+  accountName: string;
+  /** Kronor */
+  currentBalance: number;
+  /** Kronor */
+  closingDebit: number;
+  /** Kronor */
+  closingCredit: number;
+}
+
+export interface ClosingPreviewSectionResponse {
+  title: string;
+  lines: ClosingEntryLineResponse[];
+  /** Kronor */
+  total: number;
+}
+
+export interface ClosingPreviewResponse {
+  revenues: ClosingPreviewSectionResponse;
+  expenses: ClosingPreviewSectionResponse;
+  financialIncome: ClosingPreviewSectionResponse;
+  financialExpenses: ClosingPreviewSectionResponse;
+  resultEntry: {
+    accountNumber: string;
+    accountName: string;
+    /** Kronor */
+    debit: number;
+    /** Kronor */
+    credit: number;
+  };
+  /** Kronor */
+  totalRevenues: number;
+  /** Kronor */
+  totalExpenses: number;
+  /** Kronor */
+  operatingResult: number;
+  /** Kronor */
+  totalFinancialIncome: number;
+  /** Kronor */
+  totalFinancialExpenses: number;
+  /** Kronor */
+  netResult: number;
+  accountCount: number;
+  isBalanced: boolean;
+  hasEntries: boolean;
+  generatedAt: string;
+}
+
 // --- Dashboard ---
 
 export interface DashboardSummary {
