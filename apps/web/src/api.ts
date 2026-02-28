@@ -2,6 +2,7 @@ import type {
   Account,
   ApiResponse,
   BalanceSheet,
+  ClosingPreviewResponse,
   DashboardSummary,
   DocumentMeta,
   FiscalYear,
@@ -25,6 +26,7 @@ import type {
 export type {
   Account,
   BalanceSheet,
+  ClosingPreviewResponse,
   DashboardSummary,
   DocumentMeta,
   FiscalYear,
@@ -231,6 +233,11 @@ export const api = {
     fetchJson<ApiResponse<FiscalYear>>(
       `${API_BASE}/organizations/${orgId}/fiscal-years/${fyId}/close`,
       { method: "PATCH" },
+    ),
+
+  getClosingPreview: (orgId: string, fyId: string) =>
+    fetchJson<ApiResponse<ClosingPreviewResponse>>(
+      `${API_BASE}/organizations/${orgId}/fiscal-years/${fyId}/close-preview`,
     ),
 
   // Accounts
