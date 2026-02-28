@@ -48,6 +48,7 @@ const SieExport = lazy(() => import("./pages/SieExport").then((m) => ({ default:
 const FiscalYears = lazy(() =>
   import("./pages/FiscalYears").then((m) => ({ default: m.FiscalYears })),
 );
+const YearEndClosing = lazy(() => import("./pages/YearEndClosing"));
 const Members = lazy(() => import("./pages/Members").then((m) => ({ default: m.Members })));
 const NotFound = lazy(() => import("./pages/NotFound").then((m) => ({ default: m.NotFound })));
 const Login = lazy(() => import("./pages/Login").then((m) => ({ default: m.Login })));
@@ -129,6 +130,7 @@ function AppContent() {
             <span className={styles.navSeparator} aria-hidden="true" />
             <NavLink to="/sie">SIE</NavLink>
             <NavLink to="/fiscal-years">Räkenskapsår</NavLink>
+            <NavLink to="/year-end-closing">Bokslut</NavLink>
             <NavLink to="/members">Medlemmar</NavLink>
           </nav>
 
@@ -152,6 +154,7 @@ function AppContent() {
                 <Route path="/reports/voucher-list" element={<VoucherListReport />} />
                 <Route path="/sie" element={<SieExport />} />
                 <Route path="/fiscal-years" element={<FiscalYears />} />
+                <Route path="/year-end-closing" element={<YearEndClosing />} />
                 <Route path="/members" element={<Members />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
