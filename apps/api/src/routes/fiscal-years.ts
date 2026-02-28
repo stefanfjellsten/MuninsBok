@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
+import { calculateClosingPreview } from "@muninsbok/core/reports";
+import type { ClosingPreviewResponse } from "@muninsbok/core/api-types";
 import { createFiscalYearSchema, openingBalancesSchema } from "../schemas/index.js";
 import { parseBody } from "../utils/parse-body.js";
+import { öreToKronor } from "../utils/amount-conversion.js";
 
 export async function fiscalYearRoutes(fastify: FastifyInstance) {
   const fyRepo = fastify.repos.fiscalYears;
@@ -79,4 +82,69 @@ export async function fiscalYearRoutes(fastify: FastifyInstance) {
 
     return reply.status(201).send({ data: result.value });
   });
+
+  // Preview closing entries for a fiscal year (before actually closing)
+  fastify.get<{ Params: { orgId: string; fyId: string } }>(
+    "/:orgId/fiscal-years/:fyId/close-preview",
+    async (request, reply) => {
+      const { orgId, fyId } = request.params;
+
+      // Validate fiscal year exists
+      const fy = await fyRepo.findById(fyId, orgId);
+      if (!fy) {
+        return reply.status(404).send({ error: "Räkenskapsåret hittades inte" });
+      }
+      if (fy.isClosed) {
+        return reply.status(400).send({ error: "Räkenskapsåret är redan stängt" });
+      }
+
+      // Load vouchers and accounts
+      const [vouchers, accounts] = await Promise.all([
+        fastify.repos.vouchers.findByFiscalYear(fyId, orgId),
+        fastify.repos.accounts.findByOrganization(orgId),
+      ]);
+
+      const preview = calculateClosingPreview(vouchers, accounts);
+
+      // Convert öre → kronor
+      function convertSection(s: typeof preview.revenues): ClosingPreviewResponse["revenues"] {
+        return {
+          title: s.title,
+          lines: s.lines.map((l) => ({
+            accountNumber: l.accountNumber,
+            accountName: l.accountName,
+            currentBalance: öreToKronor(l.currentBalance),
+            closingDebit: öreToKronor(l.closingDebit),
+            closingCredit: öreToKronor(l.closingCredit),
+          })),
+          total: öreToKronor(s.total),
+        };
+      }
+
+      const response: ClosingPreviewResponse = {
+        revenues: convertSection(preview.revenues),
+        expenses: convertSection(preview.expenses),
+        financialIncome: convertSection(preview.financialIncome),
+        financialExpenses: convertSection(preview.financialExpenses),
+        resultEntry: {
+          accountNumber: preview.resultEntry.accountNumber,
+          accountName: preview.resultEntry.accountName,
+          debit: öreToKronor(preview.resultEntry.debit),
+          credit: öreToKronor(preview.resultEntry.credit),
+        },
+        totalRevenues: öreToKronor(preview.totalRevenues),
+        totalExpenses: öreToKronor(preview.totalExpenses),
+        operatingResult: öreToKronor(preview.operatingResult),
+        totalFinancialIncome: öreToKronor(preview.totalFinancialIncome),
+        totalFinancialExpenses: öreToKronor(preview.totalFinancialExpenses),
+        netResult: öreToKronor(preview.netResult),
+        accountCount: preview.accountCount,
+        isBalanced: preview.isBalanced,
+        hasEntries: preview.hasEntries,
+        generatedAt: preview.generatedAt.toISOString(),
+      };
+
+      return { data: response };
+    },
+  );
 }
