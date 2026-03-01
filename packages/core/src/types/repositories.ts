@@ -12,6 +12,12 @@ import type { Account, CreateAccountInput, UpdateAccountInput, AccountError } fr
 import type { Voucher, CreateVoucherInput, VoucherError } from "./voucher.js";
 import type { Document, CreateDocumentInput, DocumentError } from "./document.js";
 import type {
+  VoucherTemplate,
+  CreateVoucherTemplateInput,
+  UpdateVoucherTemplateInput,
+  VoucherTemplateError,
+} from "./voucher-template.js";
+import type {
   User,
   CreateUserInput,
   UserError,
@@ -102,6 +108,23 @@ export interface IFiscalYearRepository {
     previousFiscalYearId: string,
     organizationId: string,
   ): Promise<Result<Voucher, FiscalYearError>>;
+}
+
+// ── Voucher Template ────────────────────────────────────────
+
+export interface IVoucherTemplateRepository {
+  findByOrganization(organizationId: string): Promise<VoucherTemplate[]>;
+  findById(id: string, organizationId: string): Promise<VoucherTemplate | null>;
+  create(
+    organizationId: string,
+    input: CreateVoucherTemplateInput,
+  ): Promise<Result<VoucherTemplate, VoucherTemplateError>>;
+  update(
+    id: string,
+    organizationId: string,
+    input: UpdateVoucherTemplateInput,
+  ): Promise<Result<VoucherTemplate, VoucherTemplateError>>;
+  delete(id: string, organizationId: string): Promise<boolean>;
 }
 
 // ── Document ────────────────────────────────────────────────
