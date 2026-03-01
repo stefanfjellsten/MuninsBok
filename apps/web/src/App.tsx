@@ -49,6 +49,12 @@ const FiscalYears = lazy(() =>
   import("./pages/FiscalYears").then((m) => ({ default: m.FiscalYears })),
 );
 const YearEndClosing = lazy(() => import("./pages/YearEndClosing"));
+const VoucherTemplates = lazy(() =>
+  import("./pages/VoucherTemplates").then((m) => ({ default: m.VoucherTemplates })),
+);
+const VoucherTemplateForm = lazy(() =>
+  import("./pages/VoucherTemplateForm").then((m) => ({ default: m.VoucherTemplateForm })),
+);
 const Members = lazy(() => import("./pages/Members").then((m) => ({ default: m.Members })));
 const NotFound = lazy(() => import("./pages/NotFound").then((m) => ({ default: m.NotFound })));
 const Login = lazy(() => import("./pages/Login").then((m) => ({ default: m.Login })));
@@ -110,6 +116,7 @@ function AppContent() {
             <span className={styles.navGroup}>
               <NavLink to="/dashboard">Översikt</NavLink>
               <NavLink to="/vouchers">Verifikat</NavLink>
+              <NavLink to="/templates">Mallar</NavLink>
               <NavLink to="/accounts">Kontoplan</NavLink>
             </span>
             <span className={styles.navSeparator} aria-hidden="true" />
@@ -142,6 +149,9 @@ function AppContent() {
                 <Route path="/vouchers" element={<VoucherList />} />
                 <Route path="/vouchers/new" element={<VoucherCreate />} />
                 <Route path="/vouchers/:voucherId" element={<VoucherDetail />} />
+                <Route path="/templates" element={<VoucherTemplates />} />
+                <Route path="/templates/new" element={<VoucherTemplateForm />} />
+                <Route path="/templates/:templateId/edit" element={<VoucherTemplateForm />} />
                 <Route path="/accounts" element={<AccountList />} />
                 <Route path="/reports/trial-balance" element={<TrialBalance />} />
                 <Route path="/reports/income-statement" element={<IncomeStatement />} />
