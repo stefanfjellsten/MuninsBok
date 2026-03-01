@@ -5,6 +5,8 @@ import type {
   Account as CoreAccount,
   Voucher as CoreVoucher,
   VoucherLine as CoreVoucherLine,
+  VoucherTemplate as CoreVoucherTemplate,
+  VoucherTemplateLine as CoreVoucherTemplateLine,
   Document as CoreDocument,
   AccountType,
   User as CoreUser,
@@ -176,5 +178,39 @@ export function toOrganizationMemberWithUser(
     role: member.role as CoreMemberRole,
     createdAt: member.createdAt,
     user: toSafeUser(member.user),
+  };
+}
+
+/**
+ * Map Prisma VoucherTemplateLine to Core VoucherTemplateLine
+ */
+export function toVoucherTemplateLine(
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Prisma GetPayload generic
+  line: Prisma.VoucherTemplateLineGetPayload<{}>,
+): CoreVoucherTemplateLine {
+  return {
+    id: line.id,
+    templateId: line.templateId,
+    accountNumber: line.accountNumber,
+    debit: line.debit,
+    credit: line.credit,
+    ...(line.description != null && { description: line.description }),
+  };
+}
+
+/**
+ * Map Prisma VoucherTemplate (with lines) to Core VoucherTemplate
+ */
+export function toVoucherTemplate(
+  template: Prisma.VoucherTemplateGetPayload<{ include: { lines: true } }>,
+): CoreVoucherTemplate {
+  return {
+    id: template.id,
+    organizationId: template.organizationId,
+    name: template.name,
+    ...(template.description != null && { description: template.description }),
+    lines: template.lines.map(toVoucherTemplateLine),
+    createdAt: template.createdAt,
+    updatedAt: template.updatedAt,
   };
 }
