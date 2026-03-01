@@ -21,6 +21,7 @@ import type {
   Voucher,
   VoucherGaps,
   VoucherListReportData,
+  VoucherTemplate,
 } from "@muninsbok/core/api-types";
 
 export type {
@@ -48,6 +49,7 @@ export type {
   Voucher,
   VoucherGaps,
   VoucherListReportData,
+  VoucherTemplate,
 } from "@muninsbok/core/api-types";
 
 const API_BASE = "/api";
@@ -560,4 +562,46 @@ export const api = {
 
   removeMember: (orgId: string, userId: string) =>
     fetchVoid(`${API_BASE}/organizations/${orgId}/members/${userId}`, { method: "DELETE" }),
+
+  // ── Voucher Templates ─────────────────────────────────────
+
+  getVoucherTemplates: (orgId: string) =>
+    fetchJson<ApiResponse<VoucherTemplate[]>>(`${API_BASE}/organizations/${orgId}/templates`),
+
+  getVoucherTemplate: (orgId: string, templateId: string) =>
+    fetchJson<ApiResponse<VoucherTemplate>>(
+      `${API_BASE}/organizations/${orgId}/templates/${templateId}`,
+    ),
+
+  createVoucherTemplate: (
+    orgId: string,
+    data: {
+      name: string;
+      description?: string;
+      lines: { accountNumber: string; debit: number; credit: number; description?: string }[];
+    },
+  ) =>
+    fetchJson<ApiResponse<VoucherTemplate>>(`${API_BASE}/organizations/${orgId}/templates`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateVoucherTemplate: (
+    orgId: string,
+    templateId: string,
+    data: {
+      name?: string;
+      description?: string | null;
+      lines?: { accountNumber: string; debit: number; credit: number; description?: string }[];
+    },
+  ) =>
+    fetchJson<ApiResponse<VoucherTemplate>>(
+      `${API_BASE}/organizations/${orgId}/templates/${templateId}`,
+      { method: "PUT", body: JSON.stringify(data) },
+    ),
+
+  deleteVoucherTemplate: (orgId: string, templateId: string) =>
+    fetchVoid(`${API_BASE}/organizations/${orgId}/templates/${templateId}`, {
+      method: "DELETE",
+    }),
 };
