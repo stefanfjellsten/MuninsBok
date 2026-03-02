@@ -141,7 +141,8 @@ docker compose up postgres -d
 pnpm --filter @muninsbok/db exec prisma generate
 pnpm db:push
 
-# Bygg core-paketet
+# Bygg paketen
+pnpm --filter @muninsbok/db build
 pnpm --filter @muninsbok/core build
 
 # Starta utvecklingsservrar
