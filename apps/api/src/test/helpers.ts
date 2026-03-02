@@ -5,6 +5,7 @@
 import { vi } from "vitest";
 import { buildApp } from "../app.js";
 import type { Repositories } from "../repositories.js";
+import type { FastifyInstance } from "fastify";
 import type {
   IOrganizationRepository,
   IAccountRepository,
@@ -12,6 +13,7 @@ import type {
   IVoucherTemplateRepository,
   IFiscalYearRepository,
   IDocumentRepository,
+  IDocumentStorage,
   IUserRepository,
   IRefreshTokenRepository,
 } from "@muninsbok/core/types";
@@ -149,7 +151,7 @@ export interface MockRepos {
   prisma: MockPrisma;
 }
 
-export function createMockDocumentStorage() {
+export function createMockDocumentStorage(): MockedRepo<IDocumentStorage> {
   return {
     generateStorageKey: vi.fn().mockReturnValue("org-1/uuid.pdf"),
     store: vi.fn().mockResolvedValue(undefined),
@@ -186,7 +188,7 @@ export function createMockRepos(): MockRepos {
 }
 
 /** Build a Fastify test app with mocked repositories */
-export async function buildTestApp(mocks?: MockRepos, options?: { jwtSecret?: string }) {
+export async function buildTestApp(mocks?: MockRepos, options?: { jwtSecret?: string }): Promise<{ app: FastifyInstance; repos: MockRepos; documentStorage: MockedRepo<IDocumentStorage> }> {
   const repos = mocks ?? createMockRepos();
   const documentStorage = createMockDocumentStorage();
   const app = await buildApp({
