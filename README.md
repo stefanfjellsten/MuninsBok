@@ -132,13 +132,13 @@ pnpm install
 
 # Kopiera environment-variabler
 cp .env.example .env
-cp .env.docker.example .env.docker
-# Redigera .env.docker — byt CHANGE_ME mot riktiga värden
+# Redigera .env — byt JWT_SECRET och eventuellt lösenord
 
 # Starta PostgreSQL (kör med Docker om du inte har lokalt)
 docker compose up postgres -d
 
-# Kör Prisma migrations
+# Generera Prisma-klient och pusha schema till databasen
+pnpm --filter @muninsbok/db exec prisma generate
 pnpm db:push
 
 # Bygg core-paketet
