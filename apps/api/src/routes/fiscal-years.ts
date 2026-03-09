@@ -1,7 +1,16 @@
 import type { FastifyInstance } from "fastify";
 import { calculateClosingPreview } from "@muninsbok/core/reports";
-import type { ClosingPreviewResponse } from "@muninsbok/core/api-types";
-import { createFiscalYearSchema, openingBalancesSchema } from "../schemas/index.js";
+import { calculateYearEndSummary } from "@muninsbok/core/reports";
+import type {
+  ClosingPreviewResponse,
+  ResultDispositionPreviewResponse,
+  YearEndSummaryResponse,
+} from "@muninsbok/core/api-types";
+import {
+  createFiscalYearSchema,
+  openingBalancesSchema,
+  resultDispositionSchema,
+} from "../schemas/index.js";
 import { parseBody } from "../utils/parse-body.js";
 import { öreToKronor } from "../utils/amount-conversion.js";
 
@@ -142,6 +151,186 @@ export async function fiscalYearRoutes(fastify: FastifyInstance) {
         isBalanced: preview.isBalanced,
         hasEntries: preview.hasEntries,
         generatedAt: preview.generatedAt.toISOString(),
+      };
+
+      return { data: response };
+    },
+  );
+
+  // Preview result disposition for a closed fiscal year
+  fastify.get<{ Params: { orgId: string; fyId: string }; Querystring: { targetFyId?: string } }>(
+    "/:orgId/fiscal-years/:fyId/disposition-preview",
+    async (request, reply) => {
+      const { orgId, fyId } = request.params;
+      const targetFyId = (request.query as Record<string, string | undefined>)["targetFyId"];
+
+      const fy = await fyRepo.findById(fyId, orgId);
+      if (!fy) {
+        return reply.status(404).send({ error: "Räkenskapsåret hittades inte" });
+      }
+      if (!fy.isClosed) {
+        return reply.status(400).send({ error: "Räkenskapsåret måste vara stängt" });
+      }
+
+      // Load vouchers and accounts to calculate disposition
+      const [vouchers, accounts] = await Promise.all([
+        fastify.repos.vouchers.findByFiscalYear(fyId, orgId),
+        fastify.repos.accounts.findByOrganization(orgId),
+      ]);
+
+      const summary = calculateYearEndSummary(fy, vouchers, accounts, targetFyId);
+
+      if (!summary.disposition) {
+        if (summary.isDisposed) {
+          return reply.status(400).send({ error: "Resultatet har redan disponerats" });
+        }
+        return reply.status(400).send({ error: "Inget resultat att disponera" });
+      }
+
+      const disp = summary.disposition;
+      const response: ResultDispositionPreviewResponse = {
+        closedFiscalYearId: disp.closedFiscalYearId,
+        targetFiscalYearId: disp.targetFiscalYearId,
+        netResult: öreToKronor(disp.netResult),
+        lines: disp.lines.map((l) => ({
+          accountNumber: l.accountNumber,
+          accountName: l.accountName,
+          debit: öreToKronor(l.debit),
+          credit: öreToKronor(l.credit),
+        })),
+        isBalanced: disp.isBalanced,
+        generatedAt: disp.generatedAt.toISOString(),
+      };
+
+      return { data: response };
+    },
+  );
+
+  // Execute result disposition (create voucher transferring 2099 → 2091)
+  fastify.post<{ Params: { orgId: string; fyId: string } }>(
+    "/:orgId/fiscal-years/:fyId/disposition",
+    async (request, reply) => {
+      const { orgId, fyId } = request.params;
+      const data = parseBody(resultDispositionSchema, request.body);
+
+      const result = await fyRepo.executeResultDisposition({
+        closedFiscalYearId: data.closedFiscalYearId,
+        targetFiscalYearId: fyId,
+        organizationId: orgId,
+      });
+
+      if (!result.ok) {
+        const status =
+          result.error.code === "NOT_FOUND" || result.error.code === "TARGET_YEAR_REQUIRED"
+            ? 404
+            : 400;
+        return reply.status(status).send({ error: result.error });
+      }
+
+      return reply.status(201).send({ data: result.value });
+    },
+  );
+
+  // Year-end summary for a fiscal year
+  fastify.get<{ Params: { orgId: string; fyId: string }; Querystring: { targetFyId?: string } }>(
+    "/:orgId/fiscal-years/:fyId/year-end-summary",
+    async (request, reply) => {
+      const { orgId, fyId } = request.params;
+      const targetFyId = (request.query as Record<string, string | undefined>)["targetFyId"];
+
+      const fy = await fyRepo.findById(fyId, orgId);
+      if (!fy) {
+        return reply.status(404).send({ error: "Räkenskapsåret hittades inte" });
+      }
+
+      const [vouchers, accounts] = await Promise.all([
+        fastify.repos.vouchers.findByFiscalYear(fyId, orgId),
+        fastify.repos.accounts.findByOrganization(orgId),
+      ]);
+
+      const summary = calculateYearEndSummary(fy, vouchers, accounts, targetFyId);
+
+      // Convert öre → kronor for the response
+      function convertReportSection(s: {
+        title: string;
+        rows: readonly { accountNumber: string; accountName: string; amount: number }[];
+        total: number;
+      }) {
+        return {
+          title: s.title,
+          rows: s.rows.map((r) => ({
+            accountNumber: r.accountNumber,
+            accountName: r.accountName,
+            amount: öreToKronor(r.amount),
+          })),
+          total: öreToKronor(s.total),
+        };
+      }
+
+      function convertBalanceSection(s: {
+        title: string;
+        rows: readonly { accountNumber: string; accountName: string; balance: number }[];
+        total: number;
+      }) {
+        return {
+          title: s.title,
+          rows: s.rows.map((r) => ({
+            accountNumber: r.accountNumber,
+            accountName: r.accountName,
+            amount: öreToKronor(r.balance),
+          })),
+          total: öreToKronor(s.total),
+        };
+      }
+
+      const is = summary.incomeStatement;
+      const bs = summary.balanceSheet;
+
+      const dispositionResponse: ResultDispositionPreviewResponse | null = summary.disposition
+        ? {
+            closedFiscalYearId: summary.disposition.closedFiscalYearId,
+            targetFiscalYearId: summary.disposition.targetFiscalYearId,
+            netResult: öreToKronor(summary.disposition.netResult),
+            lines: summary.disposition.lines.map((l) => ({
+              accountNumber: l.accountNumber,
+              accountName: l.accountName,
+              debit: öreToKronor(l.debit),
+              credit: öreToKronor(l.credit),
+            })),
+            isBalanced: summary.disposition.isBalanced,
+            generatedAt: summary.disposition.generatedAt.toISOString(),
+          }
+        : null;
+
+      const response: YearEndSummaryResponse = {
+        fiscalYear: {
+          id: summary.fiscalYear.id,
+          startDate: summary.fiscalYear.startDate.toISOString(),
+          endDate: summary.fiscalYear.endDate.toISOString(),
+          isClosed: summary.fiscalYear.isClosed,
+        },
+        incomeStatement: {
+          revenues: convertReportSection(is.revenues),
+          expenses: convertReportSection(is.expenses),
+          operatingResult: öreToKronor(is.operatingResult),
+          financialIncome: convertReportSection(is.financialIncome),
+          financialExpenses: convertReportSection(is.financialExpenses),
+          netResult: öreToKronor(is.netResult),
+          generatedAt: is.generatedAt.toISOString(),
+        },
+        balanceSheet: {
+          assets: convertBalanceSection(bs.assets),
+          liabilities: convertBalanceSection(bs.liabilities),
+          equity: convertBalanceSection(bs.equity),
+          totalAssets: öreToKronor(bs.totalAssets),
+          totalLiabilitiesAndEquity: öreToKronor(bs.totalLiabilitiesAndEquity),
+          difference: öreToKronor(bs.difference),
+          yearResult: öreToKronor(bs.yearResult),
+          generatedAt: bs.generatedAt.toISOString(),
+        },
+        disposition: dispositionResponse,
+        isDisposed: summary.isDisposed,
+        generatedAt: summary.generatedAt.toISOString(),
       };
 
       return { data: response };
