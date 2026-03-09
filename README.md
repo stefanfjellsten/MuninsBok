@@ -135,16 +135,19 @@ cd muninsbok
 # Installera dependencies
 pnpm install
 
+# Kopiera environment-variabler
+cp .env.example .env
+# Redigera .env — byt JWT_SECRET och eventuellt lösenord
+
 # Starta PostgreSQL (kör med Docker om du inte har lokalt)
 docker compose up postgres -d
 
-# Kopiera environment-variabler
-cp .env.example .env
-
-# Kör Prisma migrations
+# Generera Prisma-klient och pusha schema till databasen
+pnpm --filter @muninsbok/db exec prisma generate
 pnpm db:push
 
-# Bygg core-paketet
+# Bygg paketen
+pnpm --filter @muninsbok/db build
 pnpm --filter @muninsbok/core build
 
 # Starta utvecklingsservrar
