@@ -1,11 +1,15 @@
 import { api } from "../api";
-import { formatAmount, amountClassName } from "../utils/formatting";
+import { formatAmount, formatDate, amountClassName } from "../utils/formatting";
 import { toCsv, downloadCsv, csvAmount } from "../utils/csv";
+import { exportVatReportPdf } from "../utils/pdf";
 import { DateFilter } from "../components/DateFilter";
 import { useReportQuery } from "../hooks/useReportQuery";
 
 export function VatReport() {
-  const { data, isLoading, error, setDateRange } = useReportQuery("vat-report", api.getVatReport);
+  const { data, isLoading, error, setDateRange, organization, fiscalYear } = useReportQuery(
+    "vat-report",
+    api.getVatReport,
+  );
 
   if (isLoading) {
     return <div className="loading">Laddar momsrapport...</div>;
@@ -41,37 +45,53 @@ export function VatReport() {
     <div className="card">
       <div className="flex justify-between items-center mb-2">
         <h2>Momsrapport</h2>
-        <button
-          className="secondary"
-          onClick={() => {
-            const allRows = [
-              ...report.outputVat.map((r) => [
-                r.accountNumber,
-                r.accountName,
-                "Utgående",
-                csvAmount(r.amount),
-              ]),
-              ["", "Summa utgående moms", "", csvAmount(report.totalOutputVat)],
-              ...report.inputVat.map((r) => [
-                r.accountNumber,
-                r.accountName,
-                "Ingående",
-                csvAmount(r.amount),
-              ]),
-              ["", "Summa ingående moms", "", csvAmount(report.totalInputVat)],
-              [
-                "",
-                report.vatPayable >= 0 ? "Moms att betala" : "Momsfordran",
-                "",
-                csvAmount(report.vatPayable),
-              ],
-            ];
-            const csv = toCsv(["Konto", "Namn", "Typ", "Belopp"], allRows);
-            downloadCsv(csv, "momsrapport.csv");
-          }}
-        >
-          Exportera CSV
-        </button>
+        <div className="flex" style={{ gap: "0.5rem" }}>
+          <button
+            className="secondary"
+            onClick={() => {
+              const allRows = [
+                ...report.outputVat.map((r) => [
+                  r.accountNumber,
+                  r.accountName,
+                  "Utgående",
+                  csvAmount(r.amount),
+                ]),
+                ["", "Summa utgående moms", "", csvAmount(report.totalOutputVat)],
+                ...report.inputVat.map((r) => [
+                  r.accountNumber,
+                  r.accountName,
+                  "Ingående",
+                  csvAmount(r.amount),
+                ]),
+                ["", "Summa ingående moms", "", csvAmount(report.totalInputVat)],
+                [
+                  "",
+                  report.vatPayable >= 0 ? "Moms att betala" : "Momsfordran",
+                  "",
+                  csvAmount(report.vatPayable),
+                ],
+              ];
+              const csv = toCsv(["Konto", "Namn", "Typ", "Belopp"], allRows);
+              downloadCsv(csv, "momsrapport.csv");
+            }}
+          >
+            Exportera CSV
+          </button>
+          <button
+            className="secondary"
+            onClick={() =>
+              exportVatReportPdf(
+                report,
+                organization?.name ?? "",
+                fiscalYear
+                  ? formatDate(fiscalYear.startDate) + " – " + formatDate(fiscalYear.endDate)
+                  : "",
+              )
+            }
+          >
+            Exportera PDF
+          </button>
+        </div>
       </div>
       <div className="mb-2">
         <DateFilter onFilter={setDateRange} />
