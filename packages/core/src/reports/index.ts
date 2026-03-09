@@ -51,3 +51,5 @@ export {
   type ClosingEntryLine,
   type ClosingPreviewSection,
 } from "./closing-preview.js";
+
+export { calculateYearEndSummary, type YearEndSummary } from "./year-end-summary.js";
