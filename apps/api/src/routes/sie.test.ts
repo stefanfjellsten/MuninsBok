@@ -52,12 +52,12 @@ describe("SIE routes", () => {
 
     // Wire mocked constructors so new AccountRepository(tx) / VoucherRepository(tx)
     // inside the $transaction callback return the test's mock repos.
-    (AccountRepository as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      () => repos.accounts,
-    );
-    (VoucherRepository as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      () => repos.vouchers,
-    );
+    (AccountRepository as unknown as ReturnType<typeof vi.fn>).mockImplementation(function () {
+      return repos.accounts;
+    });
+    (VoucherRepository as unknown as ReturnType<typeof vi.fn>).mockImplementation(function () {
+      return repos.vouchers;
+    });
   });
 
   describe("GET /:orgId/sie/export", () => {
