@@ -7,6 +7,8 @@ import type {
   VoucherLine as CoreVoucherLine,
   VoucherTemplate as CoreVoucherTemplate,
   VoucherTemplateLine as CoreVoucherTemplateLine,
+  Budget as CoreBudget,
+  BudgetEntry as CoreBudgetEntry,
   Document as CoreDocument,
   AccountType,
   User as CoreUser,
@@ -212,5 +214,35 @@ export function toVoucherTemplate(
     lines: template.lines.map(toVoucherTemplateLine),
     createdAt: template.createdAt,
     updatedAt: template.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma BudgetEntry to Core BudgetEntry
+ */
+export function toBudgetEntry(entry: Prisma.BudgetEntryGetPayload<object>): CoreBudgetEntry {
+  return {
+    id: entry.id,
+    budgetId: entry.budgetId,
+    accountNumber: entry.accountNumber,
+    month: entry.month,
+    amount: entry.amount,
+  };
+}
+
+/**
+ * Map Prisma Budget (with entries) to Core Budget
+ */
+export function toBudget(
+  budget: Prisma.BudgetGetPayload<{ include: { entries: true } }>,
+): CoreBudget {
+  return {
+    id: budget.id,
+    organizationId: budget.organizationId,
+    fiscalYearId: budget.fiscalYearId,
+    name: budget.name,
+    entries: budget.entries.map(toBudgetEntry),
+    createdAt: budget.createdAt,
+    updatedAt: budget.updatedAt,
   };
 }
