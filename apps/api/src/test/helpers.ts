@@ -77,6 +77,7 @@ export function createMockFiscalYearRepo(): MockedRepo<IFiscalYearRepository> {
     create: vi.fn(),
     close: vi.fn(),
     createOpeningBalances: vi.fn(),
+    executeResultDisposition: vi.fn(),
   } as MockedRepo<IFiscalYearRepository>;
 }
 
