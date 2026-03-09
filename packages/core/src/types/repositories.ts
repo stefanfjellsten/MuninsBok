@@ -21,6 +21,7 @@ import type {
   ExecuteResultDispositionInput,
   ResultDispositionError,
 } from "./result-disposition.js";
+import type { Budget, CreateBudgetInput, UpdateBudgetInput, BudgetError } from "./budget.js";
 import type {
   User,
   CreateUserInput,
@@ -191,4 +192,19 @@ export interface IRefreshTokenRepository {
   revokeAllByUserId(userId: string): Promise<void>;
   /** Delete expired tokens (housekeeping). */
   cleanupExpired(): Promise<number>;
+}
+
+// ── Budget ──────────────────────────────────────────────────
+
+export interface IBudgetRepository {
+  findByOrganization(organizationId: string): Promise<Budget[]>;
+  findByFiscalYear(organizationId: string, fiscalYearId: string): Promise<Budget[]>;
+  findById(id: string, organizationId: string): Promise<Budget | null>;
+  create(organizationId: string, input: CreateBudgetInput): Promise<Result<Budget, BudgetError>>;
+  update(
+    id: string,
+    organizationId: string,
+    input: UpdateBudgetInput,
+  ): Promise<Result<Budget, BudgetError>>;
+  delete(id: string, organizationId: string): Promise<boolean>;
 }
