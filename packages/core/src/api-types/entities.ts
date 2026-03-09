@@ -110,3 +110,25 @@ export interface VoucherTemplate {
   createdAt: string;
   updatedAt: string;
 }
+
+// ── Budgets ─────────────────────────────────────────────────
+
+export interface BudgetEntry {
+  id: string;
+  budgetId: string;
+  accountNumber: string;
+  /** Month within fiscal year (1–12). */
+  month: number;
+  /** Budgeted amount in öre. Positive = debit, negative = credit. */
+  amount: number;
+}
+
+export interface Budget {
+  id: string;
+  organizationId: string;
+  fiscalYearId: string;
+  name: string;
+  entries: BudgetEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
