@@ -9,3 +9,7 @@ export const createFiscalYearSchema = z.object({
 export const openingBalancesSchema = z.object({
   previousFiscalYearId: z.string(),
 });
+
+export const resultDispositionSchema = z.object({
+  closedFiscalYearId: z.string(),
+});
