@@ -5,8 +5,11 @@ import type {
   FiscalYearError,
   Voucher,
   IFiscalYearRepository,
+  ExecuteResultDispositionInput,
+  ResultDispositionError,
 } from "@muninsbok/core/types";
 import { ok, err, type Result } from "@muninsbok/core/types";
+import { ACCOUNT_YEAR_RESULT, ACCOUNT_RETAINED_EARNINGS } from "@muninsbok/core/types";
 import { toFiscalYear, toVoucher } from "../mappers.js";
 
 const voucherInclude = {
@@ -332,6 +335,166 @@ export class FiscalYearRepository implements IFiscalYearRepository {
         description: "Ingående balanser",
         lines: {
           create: ibLines,
+        },
+      },
+      include: voucherInclude,
+    });
+
+    return ok(toVoucher(voucher));
+  }
+
+  /**
+   * Execute result disposition: transfer the year's result from
+   * 2099 (Årets resultat) to 2091 (Balanserat resultat).
+   *
+   * Creates a voucher in the target fiscal year.
+   */
+  async executeResultDisposition(
+    input: ExecuteResultDispositionInput,
+  ): Promise<Result<Voucher, ResultDispositionError>> {
+    const { closedFiscalYearId, targetFiscalYearId, organizationId } = input;
+
+    // Verify closed fiscal year
+    const closedFy = await this.prisma.fiscalYear.findFirst({
+      where: { id: closedFiscalYearId, organizationId },
+    });
+    if (!closedFy) {
+      return err({ code: "NOT_FOUND", message: "Stängt räkenskapsår hittades inte" });
+    }
+    if (!closedFy.isClosed) {
+      return err({ code: "YEAR_NOT_CLOSED", message: "Räkenskapsåret måste vara stängt" });
+    }
+
+    // Verify target fiscal year
+    const targetFy = await this.prisma.fiscalYear.findFirst({
+      where: { id: targetFiscalYearId, organizationId },
+    });
+    if (!targetFy) {
+      return err({ code: "TARGET_YEAR_REQUIRED", message: "Målräkenskapsår hittades inte" });
+    }
+    if (targetFy.isClosed) {
+      return err({ code: "TARGET_YEAR_CLOSED", message: "Målräkenskapsåret får inte vara stängt" });
+    }
+
+    // Calculate 2099 balance from closed year (credit - debit)
+    const closedVouchers = await this.prisma.voucher.findMany({
+      where: { fiscalYearId: closedFiscalYearId, organizationId },
+      include: { lines: true },
+    });
+
+    let account2099Balance = 0;
+    for (const v of closedVouchers) {
+      for (const line of v.lines) {
+        if (line.accountNumber === ACCOUNT_YEAR_RESULT) {
+          account2099Balance += line.credit - line.debit;
+        }
+      }
+    }
+
+    if (account2099Balance === 0) {
+      return err({
+        code: "ALREADY_DISPOSED",
+        message: "Resultatet har redan disponerats eller är noll",
+      });
+    }
+
+    // Ensure accounts 2099 and 2091 exist
+    const accountNumbers = [ACCOUNT_YEAR_RESULT, ACCOUNT_RETAINED_EARNINGS];
+    const existingAccounts = await this.prisma.account.findMany({
+      where: { organizationId, number: { in: accountNumbers } },
+    });
+    const accountIdMap = new Map(existingAccounts.map((a) => [a.number, a.id]));
+
+    // Create 2091 if it doesn't exist
+    if (!accountIdMap.has(ACCOUNT_RETAINED_EARNINGS)) {
+      const created = await this.prisma.account.create({
+        data: {
+          organizationId,
+          number: ACCOUNT_RETAINED_EARNINGS,
+          name: "Balanserat resultat",
+          type: "EQUITY",
+        },
+      });
+      accountIdMap.set(ACCOUNT_RETAINED_EARNINGS, created.id);
+    }
+
+    // Create 2099 if it doesn't exist (should always exist after closing)
+    if (!accountIdMap.has(ACCOUNT_YEAR_RESULT)) {
+      const created = await this.prisma.account.create({
+        data: {
+          organizationId,
+          number: ACCOUNT_YEAR_RESULT,
+          name: "Årets resultat",
+          type: "EQUITY",
+        },
+      });
+      accountIdMap.set(ACCOUNT_YEAR_RESULT, created.id);
+    }
+
+    const account2099Id = accountIdMap.get(ACCOUNT_YEAR_RESULT);
+    const account2091Id = accountIdMap.get(ACCOUNT_RETAINED_EARNINGS);
+
+    if (!account2099Id || !account2091Id) {
+      return err({ code: "NOT_FOUND", message: "Konton 2099/2091 kunde inte skapas" });
+    }
+
+    // Build disposition lines
+    const dispositionLines: Array<{
+      accountId: string;
+      accountNumber: string;
+      debit: number;
+      credit: number;
+    }> = [];
+
+    if (account2099Balance > 0) {
+      // Profit: debit 2099, credit 2091
+      dispositionLines.push({
+        accountId: account2099Id,
+        accountNumber: ACCOUNT_YEAR_RESULT,
+        debit: account2099Balance,
+        credit: 0,
+      });
+      dispositionLines.push({
+        accountId: account2091Id,
+        accountNumber: ACCOUNT_RETAINED_EARNINGS,
+        debit: 0,
+        credit: account2099Balance,
+      });
+    } else {
+      // Loss: credit 2099, debit 2091
+      const absBalance = -account2099Balance;
+      dispositionLines.push({
+        accountId: account2099Id,
+        accountNumber: ACCOUNT_YEAR_RESULT,
+        debit: 0,
+        credit: absBalance,
+      });
+      dispositionLines.push({
+        accountId: account2091Id,
+        accountNumber: ACCOUNT_RETAINED_EARNINGS,
+        debit: absBalance,
+        credit: 0,
+      });
+    }
+
+    // Get next voucher number in target year
+    const lastVoucher = await this.prisma.voucher.findFirst({
+      where: { fiscalYearId: targetFiscalYearId },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    });
+    const nextNumber = (lastVoucher?.number ?? 0) + 1;
+
+    // Create disposition voucher in target year
+    const voucher = await this.prisma.voucher.create({
+      data: {
+        organizationId,
+        fiscalYearId: targetFiscalYearId,
+        number: nextNumber,
+        date: targetFy.startDate,
+        description: "Resultatdisposition",
+        lines: {
+          create: dispositionLines,
         },
       },
       include: voucherInclude,
