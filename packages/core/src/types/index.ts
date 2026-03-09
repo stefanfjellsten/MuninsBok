@@ -7,6 +7,7 @@ export * from "./voucher.js";
 export * from "./voucher-line.js";
 export * from "./voucher-template.js";
 export * from "./result-disposition.js";
+export * from "./budget.js";
 export * from "./document.js";
 export * from "./user.js";
 export * from "./repositories.js";
