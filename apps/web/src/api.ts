@@ -2,6 +2,8 @@ import type {
   Account,
   ApiResponse,
   BalanceSheet,
+  Budget,
+  BudgetVsActualReport,
   ClosingPreviewResponse,
   DashboardSummary,
   DocumentMeta,
@@ -29,6 +31,8 @@ import type {
 export type {
   Account,
   BalanceSheet,
+  Budget,
+  BudgetVsActualReport,
   ClosingPreviewResponse,
   DashboardSummary,
   DocumentMeta,
@@ -629,4 +633,59 @@ export const api = {
     fetchVoid(`${API_BASE}/organizations/${orgId}/templates/${templateId}`, {
       method: "DELETE",
     }),
+
+  // ── Budgets ───────────────────────────────────────────────
+
+  getBudgets: (orgId: string, fiscalYearId: string) =>
+    fetchJson<ApiResponse<Budget[]>>(
+      `${API_BASE}/organizations/${orgId}/budgets?fiscalYearId=${encodeURIComponent(fiscalYearId)}`,
+    ),
+
+  getBudget: (orgId: string, budgetId: string) =>
+    fetchJson<ApiResponse<Budget>>(`${API_BASE}/organizations/${orgId}/budgets/${budgetId}`),
+
+  createBudget: (
+    orgId: string,
+    data: {
+      fiscalYearId: string;
+      name: string;
+      entries: { accountNumber: string; month: number; amount: number }[];
+    },
+  ) =>
+    fetchJson<ApiResponse<Budget>>(`${API_BASE}/organizations/${orgId}/budgets`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  updateBudget: (
+    orgId: string,
+    budgetId: string,
+    data: {
+      name?: string;
+      entries?: { accountNumber: string; month: number; amount: number }[];
+    },
+  ) =>
+    fetchJson<ApiResponse<Budget>>(`${API_BASE}/organizations/${orgId}/budgets/${budgetId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  deleteBudget: (orgId: string, budgetId: string) =>
+    fetchVoid(`${API_BASE}/organizations/${orgId}/budgets/${budgetId}`, {
+      method: "DELETE",
+    }),
+
+  getBudgetVsActual: (
+    orgId: string,
+    budgetId: string,
+    params?: { startDate?: string; endDate?: string },
+  ) => {
+    const qs = new URLSearchParams();
+    if (params?.startDate) qs.set("startDate", params.startDate);
+    if (params?.endDate) qs.set("endDate", params.endDate);
+    const query = qs.toString();
+    return fetchJson<ApiResponse<BudgetVsActualReport>>(
+      `${API_BASE}/organizations/${orgId}/budgets/${budgetId}/vs-actual${query ? `?${query}` : ""}`,
+    );
+  },
 };
