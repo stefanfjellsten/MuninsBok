@@ -17,6 +17,7 @@ import rbac from "./plugins/rbac.js";
 import { organizationRoutes } from "./routes/organizations.js";
 import { voucherRoutes } from "./routes/vouchers.js";
 import { voucherTemplateRoutes } from "./routes/voucher-templates.js";
+import { budgetRoutes } from "./routes/budgets.js";
 import { reportRoutes } from "./routes/reports.js";
 import { sieRoutes } from "./routes/sie.js";
 import { accountRoutes } from "./routes/accounts.js";
@@ -201,6 +202,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       }
       await instance.register(voucherRoutes);
       await instance.register(voucherTemplateRoutes);
+      await instance.register(budgetRoutes);
       await instance.register(reportRoutes);
       await instance.register(sieRoutes);
       await instance.register(accountRoutes);
