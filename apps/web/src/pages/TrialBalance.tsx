@@ -1,11 +1,12 @@
 import { api } from "../api";
-import { formatAmount, amountClassName } from "../utils/formatting";
+import { formatAmount, formatDate, amountClassName } from "../utils/formatting";
 import { toCsv, downloadCsv, csvAmount } from "../utils/csv";
+import { exportTrialBalancePdf } from "../utils/pdf";
 import { DateFilter } from "../components/DateFilter";
 import { useReportQuery } from "../hooks/useReportQuery";
 
 export function TrialBalance() {
-  const { data, isLoading, error, setDateRange } = useReportQuery(
+  const { data, isLoading, error, setDateRange, organization, fiscalYear } = useReportQuery(
     "trial-balance",
     api.getTrialBalance,
   );
@@ -33,24 +34,40 @@ export function TrialBalance() {
     <div className="card">
       <div className="flex justify-between items-center mb-2">
         <h2>Råbalans</h2>
-        <button
-          className="secondary"
-          onClick={() => {
-            const csv = toCsv(
-              ["Konto", "Namn", "Debet", "Kredit", "Saldo"],
-              report.rows.map((r) => [
-                r.accountNumber,
-                r.accountName,
-                csvAmount(r.debit),
-                csvAmount(r.credit),
-                csvAmount(r.balance),
-              ]),
-            );
-            downloadCsv(csv, "rabalans.csv");
-          }}
-        >
-          Exportera CSV
-        </button>
+        <div className="flex" style={{ gap: "0.5rem" }}>
+          <button
+            className="secondary"
+            onClick={() => {
+              const csv = toCsv(
+                ["Konto", "Namn", "Debet", "Kredit", "Saldo"],
+                report.rows.map((r) => [
+                  r.accountNumber,
+                  r.accountName,
+                  csvAmount(r.debit),
+                  csvAmount(r.credit),
+                  csvAmount(r.balance),
+                ]),
+              );
+              downloadCsv(csv, "rabalans.csv");
+            }}
+          >
+            Exportera CSV
+          </button>
+          <button
+            className="secondary"
+            onClick={() =>
+              exportTrialBalancePdf(
+                report,
+                organization?.name ?? "",
+                fiscalYear
+                  ? formatDate(fiscalYear.startDate) + " – " + formatDate(fiscalYear.endDate)
+                  : "",
+              )
+            }
+          >
+            Exportera PDF
+          </button>
+        </div>
       </div>
       <div className="mb-2">
         <DateFilter onFilter={setDateRange} />
