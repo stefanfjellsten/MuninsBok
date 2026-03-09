@@ -29,6 +29,7 @@ model Organization {
   documents   Document[]
   members     OrganizationMember[]
   voucherTemplates VoucherTemplate[]
+  budgets     Budget[]
 
   @@map("organizations")
 }
@@ -113,6 +114,7 @@ model FiscalYear {
   // Relations
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   vouchers     Voucher[]
+  budgets      Budget[]
 
   @@unique([organizationId, startDate])
   @@index([organizationId])
@@ -266,4 +268,46 @@ model VoucherTemplateLine {
 
   @@index([templateId])
   @@map("voucher_template_lines")
+}
+
+// ============================================
+// BUDGET
+// ============================================
+
+model Budget {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  fiscalYearId   String   @map("fiscal_year_id")
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  fiscalYear   FiscalYear   @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
+  entries      BudgetEntry[]
+
+  @@unique([organizationId, fiscalYearId, name])
+  @@index([organizationId])
+  @@index([fiscalYearId])
+  @@map("budgets")
+}
+
+// ============================================
+// BUDGET ENTRY (budgetrad per konto + månad)
+// ============================================
+
+model BudgetEntry {
+  id            String @id @default(cuid())
+  budgetId      String @map("budget_id")
+  accountNumber String @map("account_number")
+  month         Int
+  amount        Int
+
+  // Relations
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetId, accountNumber, month])
+  @@index([budgetId])
+  @@map("budget_entries")
 }
