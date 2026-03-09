@@ -15,6 +15,7 @@ import type {
   OrgMemberWithUser,
   PaginatedApiResponse,
   PeriodReportResponse,
+  ResultDispositionPreviewResponse,
   SkVatDeclarationResponse,
   TrialBalance,
   VatReport,
@@ -22,6 +23,7 @@ import type {
   VoucherGaps,
   VoucherListReportData,
   VoucherTemplate,
+  YearEndSummaryResponse,
 } from "@muninsbok/core/api-types";
 
 export type {
@@ -43,6 +45,7 @@ export type {
   PeriodRowResponse,
   PeriodType,
   ReportSection,
+  ResultDispositionPreviewResponse,
   SkVatDeclarationResponse,
   TrialBalance,
   VatReport,
@@ -50,6 +53,7 @@ export type {
   VoucherGaps,
   VoucherListReportData,
   VoucherTemplate,
+  YearEndSummaryResponse,
 } from "@muninsbok/core/api-types";
 
 const API_BASE = "/api";
@@ -474,6 +478,27 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ previousFiscalYearId }),
       },
+    ),
+
+  // Result disposition
+  getDispositionPreview: (orgId: string, fyId: string, targetFyId: string) =>
+    fetchJson<ApiResponse<ResultDispositionPreviewResponse>>(
+      `${API_BASE}/organizations/${orgId}/fiscal-years/${fyId}/disposition-preview?targetFyId=${encodeURIComponent(targetFyId)}`,
+    ),
+
+  executeDisposition: (orgId: string, targetFyId: string, closedFiscalYearId: string) =>
+    fetchJson<ApiResponse<Voucher>>(
+      `${API_BASE}/organizations/${orgId}/fiscal-years/${targetFyId}/disposition`,
+      {
+        method: "POST",
+        body: JSON.stringify({ closedFiscalYearId }),
+      },
+    ),
+
+  // Year-end summary
+  getYearEndSummary: (orgId: string, fyId: string, targetFyId?: string) =>
+    fetchJson<ApiResponse<YearEndSummaryResponse>>(
+      `${API_BASE}/organizations/${orgId}/fiscal-years/${fyId}/year-end-summary${targetFyId ? `?targetFyId=${encodeURIComponent(targetFyId)}` : ""}`,
     ),
 
   // SIE
