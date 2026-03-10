@@ -7,7 +7,7 @@ import { api } from "../api";
 import type { ClosingPreviewResponse, FiscalYear } from "../api";
 import { formatAmount, amountClassName, formatDate } from "../utils/formatting";
 import { toCsv, downloadCsv, csvAmount } from "../utils/csv";
-import { exportYearEndClosingPdf } from "../utils/pdf";
+
 import dialogStyles from "../components/Dialog.module.css";
 import styles from "./YearEndClosing.module.css";
 
@@ -22,11 +22,17 @@ function SectionTable({ section }: { section: SectionData }) {
       <table>
         <thead>
           <tr>
-            <th>Konto</th>
-            <th>Kontonamn</th>
-            <th className="text-right">Saldo</th>
-            <th className="text-right">Debet</th>
-            <th className="text-right">Kredit</th>
+            <th scope="col">Konto</th>
+            <th scope="col">Kontonamn</th>
+            <th scope="col" className="text-right">
+              Saldo
+            </th>
+            <th scope="col" className="text-right">
+              Debet
+            </th>
+            <th scope="col" className="text-right">
+              Kredit
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -160,15 +166,16 @@ export default function YearEndClosing() {
               </button>
               <button
                 className="secondary"
-                onClick={() =>
+                onClick={async () => {
+                  const { exportYearEndClosingPdf } = await import("../utils/pdf");
                   exportYearEndClosingPdf(
                     preview,
                     organization.name,
                     activeFy
                       ? formatDate(activeFy.startDate) + " – " + formatDate(activeFy.endDate)
                       : "",
-                  )
-                }
+                  );
+                }}
               >
                 Exportera PDF
               </button>
@@ -265,10 +272,14 @@ export default function YearEndClosing() {
             <table>
               <thead>
                 <tr>
-                  <th>Konto</th>
-                  <th>Kontonamn</th>
-                  <th className="text-right">Debet</th>
-                  <th className="text-right">Kredit</th>
+                  <th scope="col">Konto</th>
+                  <th scope="col">Kontonamn</th>
+                  <th scope="col" className="text-right">
+                    Debet
+                  </th>
+                  <th scope="col" className="text-right">
+                    Kredit
+                  </th>
                 </tr>
               </thead>
               <tbody>
