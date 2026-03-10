@@ -60,5 +60,8 @@ USER node
 
 EXPOSE 3000
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=15s \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
+
 # Run migrations and start server
 CMD ["sh", "-c", "pnpm --filter @muninsbok/db exec prisma migrate deploy && node apps/api/dist/index.js"]
