@@ -113,10 +113,12 @@ export function VoucherList() {
       <table>
         <thead>
           <tr>
-            <th>Nr</th>
-            <th>Datum</th>
-            <th>Beskrivning</th>
-            <th className="text-right">Belopp</th>
+            <th scope="col">Nr</th>
+            <th scope="col">Datum</th>
+            <th scope="col">Beskrivning</th>
+            <th scope="col" className="text-right">
+              Belopp
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -160,7 +162,7 @@ export function VoucherList() {
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex justify-between items-center" style={{ marginTop: "1rem" }}>
-          <span style={{ color: "#666", fontSize: "0.9rem" }}>
+          <span style={{ color: "var(--color-text-muted)", fontSize: "0.9rem" }}>
             Visar {(pagination.page - 1) * pagination.limit + 1}–
             {Math.min(pagination.page * pagination.limit, pagination.total)} av {pagination.total}
           </span>
