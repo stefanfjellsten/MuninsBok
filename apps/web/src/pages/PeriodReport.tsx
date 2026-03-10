@@ -133,24 +133,28 @@ export function PeriodReport() {
         }}
       >
         <div style={{ background: "#f0f9f0", padding: "1rem", borderRadius: "6px" }}>
-          <div style={{ fontSize: "0.85rem", color: "#555" }}>Totala intäkter</div>
-          <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#2e7d32" }}>
+          <div style={{ fontSize: "0.85rem", color: "var(--color-text-subtle)" }}>
+            Totala intäkter
+          </div>
+          <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-positive)" }}>
             {formatAmount(report.totalIncome)}
           </div>
         </div>
         <div style={{ background: "#fef0f0", padding: "1rem", borderRadius: "6px" }}>
-          <div style={{ fontSize: "0.85rem", color: "#555" }}>Totala kostnader</div>
-          <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "#c62828" }}>
+          <div style={{ fontSize: "0.85rem", color: "var(--color-text-subtle)" }}>
+            Totala kostnader
+          </div>
+          <div style={{ fontSize: "1.3rem", fontWeight: "bold", color: "var(--color-negative)" }}>
             {formatAmount(report.totalExpenses)}
           </div>
         </div>
         <div style={{ background: "#f0f4ff", padding: "1rem", borderRadius: "6px" }}>
-          <div style={{ fontSize: "0.85rem", color: "#555" }}>Resultat</div>
+          <div style={{ fontSize: "0.85rem", color: "var(--color-text-subtle)" }}>Resultat</div>
           <div
             style={{
               fontSize: "1.3rem",
               fontWeight: "bold",
-              color: report.totalResult >= 0 ? "#2e7d32" : "#c62828",
+              color: report.totalResult >= 0 ? "var(--color-positive)" : "var(--color-negative)",
             }}
           >
             {formatAmount(report.totalResult)}
@@ -163,12 +167,22 @@ export function PeriodReport() {
         <table>
           <thead>
             <tr>
-              <th>Period</th>
-              <th className="text-right">Intäkter</th>
-              <th className="text-right">Kostnader</th>
-              <th className="text-right">Resultat</th>
-              <th className="text-right">Ackumulerat</th>
-              <th style={{ width: "20%" }}>Fördelning</th>
+              <th scope="col">Period</th>
+              <th scope="col" className="text-right">
+                Intäkter
+              </th>
+              <th scope="col" className="text-right">
+                Kostnader
+              </th>
+              <th scope="col" className="text-right">
+                Resultat
+              </th>
+              <th scope="col" className="text-right">
+                Ackumulerat
+              </th>
+              <th scope="col" style={{ width: "20%" }}>
+                Fördelning
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -177,7 +191,7 @@ export function PeriodReport() {
                 <td>
                   <strong>{p.label}</strong>
                   <br />
-                  <span style={{ fontSize: "0.8rem", color: "#888" }}>
+                  <span style={{ fontSize: "0.8rem", color: "var(--color-text-light)" }}>
                     {p.startDate} – {p.endDate}
                   </span>
                 </td>
@@ -221,7 +235,7 @@ export function PeriodReport() {
             ))}
           </tbody>
           <tfoot>
-            <tr style={{ fontWeight: "bold", borderTop: "2px solid #333" }}>
+            <tr style={{ fontWeight: "bold", borderTop: "2px solid var(--color-border-dark)" }}>
               <td>Totalt</td>
               <td className={`text-right ${amountClassName(report.totalIncome)}`}>
                 {formatAmount(report.totalIncome)}
@@ -247,11 +261,19 @@ export function PeriodReport() {
             <table>
               <thead>
                 <tr>
-                  <th>Period</th>
-                  <th className="text-right">Intäkter Δ</th>
-                  <th className="text-right">Kostnader Δ</th>
-                  <th className="text-right">Resultat Δ</th>
-                  <th className="text-right">Andel av total intäkt</th>
+                  <th scope="col">Period</th>
+                  <th scope="col" className="text-right">
+                    Intäkter Δ
+                  </th>
+                  <th scope="col" className="text-right">
+                    Kostnader Δ
+                  </th>
+                  <th scope="col" className="text-right">
+                    Resultat Δ
+                  </th>
+                  <th scope="col" className="text-right">
+                    Andel av total intäkt
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -283,7 +305,7 @@ export function PeriodReport() {
         </>
       )}
 
-      <p style={{ color: "#888", fontSize: "0.85rem", marginTop: "1rem" }}>
+      <p style={{ color: "var(--color-text-light)", fontSize: "0.85rem", marginTop: "1rem" }}>
         Genererad: {new Date(report.generatedAt).toLocaleString("sv-SE")}
       </p>
     </div>
