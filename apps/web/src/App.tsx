@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import styles from "./App.module.css";
 import { OrganizationSelect } from "./components/OrganizationSelect";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import { CreateOrganizationDialog } from "./components/CreateOrganizationDialog";
 
@@ -125,6 +126,7 @@ function AppContent() {
         <h1>Munins bok</h1>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <OrganizationSelect />
+          <ThemeToggle />
           {user && (
             <div className={styles.userArea}>
               <span className={styles.userName} title={user.email}>
