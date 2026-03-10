@@ -74,6 +74,26 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 try {
   await fastify.listen({ port, host });
   console.log(`Server listening on http://${host}:${port} [${nodeEnv}]`);
+
+  // Cleanup expired refresh tokens at startup
+  const deleted = await repos.refreshTokens.cleanupExpired();
+  if (deleted > 0) {
+    fastify.log.info(`Cleaned up ${deleted} expired refresh token(s)`);
+  }
+
+  // Schedule daily cleanup of expired refresh tokens
+  const cleanupInterval = setInterval(
+    async () => {
+      try {
+        const n = await repos.refreshTokens.cleanupExpired();
+        if (n > 0) fastify.log.info(`Scheduled cleanup: removed ${n} expired refresh token(s)`);
+      } catch (err) {
+        fastify.log.error(err, "Scheduled token cleanup failed");
+      }
+    },
+    24 * 60 * 60 * 1000,
+  );
+  cleanupInterval.unref();
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
