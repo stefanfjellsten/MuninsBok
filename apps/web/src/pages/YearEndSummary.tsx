@@ -151,15 +151,17 @@ export function YearEndSummary() {
           <table>
             <thead>
               <tr>
-                <th>Konto</th>
-                <th>Namn</th>
-                <th className="text-right">Belopp</th>
+                <th scope="col">Konto</th>
+                <th scope="col">Namn</th>
+                <th scope="col" className="text-right">
+                  Belopp
+                </th>
               </tr>
             </thead>
             <tbody>
               <IncomeSection section={summary.incomeStatement.revenues} />
               <IncomeSection section={summary.incomeStatement.expenses} />
-              <tr style={{ fontWeight: "bold", borderTop: "2px solid #333" }}>
+              <tr style={{ fontWeight: "bold", borderTop: "2px solid var(--color-border-dark)" }}>
                 <td colSpan={2}>Rörelseresultat</td>
                 <td className={amountClassName(summary.incomeStatement.operatingResult)}>
                   {formatAmount(summary.incomeStatement.operatingResult)}
@@ -167,7 +169,13 @@ export function YearEndSummary() {
               </tr>
               <IncomeSection section={summary.incomeStatement.financialIncome} />
               <IncomeSection section={summary.incomeStatement.financialExpenses} />
-              <tr style={{ fontWeight: "bold", borderTop: "3px double #333", fontSize: "1.1em" }}>
+              <tr
+                style={{
+                  fontWeight: "bold",
+                  borderTop: "3px double var(--color-border-dark)",
+                  fontSize: "1.1em",
+                }}
+              >
                 <td colSpan={2}>Årets resultat</td>
                 <td className={amountClassName(summary.incomeStatement.netResult)}>
                   {formatAmount(summary.incomeStatement.netResult)}
@@ -189,14 +197,16 @@ export function YearEndSummary() {
           <table>
             <thead>
               <tr>
-                <th>Konto</th>
-                <th>Namn</th>
-                <th className="text-right">Belopp</th>
+                <th scope="col">Konto</th>
+                <th scope="col">Namn</th>
+                <th scope="col" className="text-right">
+                  Belopp
+                </th>
               </tr>
             </thead>
             <tbody>
               <BalanceTable title="Tillgångar" section={summary.balanceSheet.assets} />
-              <tr style={{ fontWeight: "bold", borderTop: "2px solid #333" }}>
+              <tr style={{ fontWeight: "bold", borderTop: "2px solid var(--color-border-dark)" }}>
                 <td colSpan={2}>Summa tillgångar</td>
                 <td className="text-right amount">
                   {formatAmount(summary.balanceSheet.totalAssets)}
@@ -205,7 +215,7 @@ export function YearEndSummary() {
 
               <BalanceTable title="Eget kapital" section={summary.balanceSheet.equity} />
               <BalanceTable title="Skulder" section={summary.balanceSheet.liabilities} />
-              <tr style={{ fontWeight: "bold", borderTop: "2px solid #333" }}>
+              <tr style={{ fontWeight: "bold", borderTop: "2px solid var(--color-border-dark)" }}>
                 <td colSpan={2}>Summa eget kapital och skulder</td>
                 <td className="text-right amount">
                   {formatAmount(summary.balanceSheet.totalLiabilitiesAndEquity)}
@@ -213,7 +223,7 @@ export function YearEndSummary() {
               </tr>
 
               {summary.balanceSheet.difference !== 0 && (
-                <tr style={{ color: "#c62828" }}>
+                <tr style={{ color: "var(--color-negative)" }}>
                   <td colSpan={2}>Differens</td>
                   <td className="text-right amount">
                     {formatAmount(summary.balanceSheet.difference)}
@@ -235,7 +245,7 @@ export function YearEndSummary() {
           </h3>
 
           {summary.isDisposed && (
-            <p style={{ color: "#2e7d32", fontWeight: 600, marginTop: "0.5rem" }}>
+            <p style={{ color: "var(--color-positive)", fontWeight: 600, marginTop: "0.5rem" }}>
               ✓ Resultatet har disponerats
             </p>
           )}
@@ -252,10 +262,14 @@ export function YearEndSummary() {
               <table>
                 <thead>
                   <tr>
-                    <th>Konto</th>
-                    <th>Kontonamn</th>
-                    <th className="text-right">Debet</th>
-                    <th className="text-right">Kredit</th>
+                    <th scope="col">Konto</th>
+                    <th scope="col">Kontonamn</th>
+                    <th scope="col" className="text-right">
+                      Debet
+                    </th>
+                    <th scope="col" className="text-right">
+                      Kredit
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
