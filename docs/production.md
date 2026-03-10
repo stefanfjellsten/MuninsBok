@@ -12,6 +12,7 @@ Denna guide beskriver hur du kör Munins bok i en produktionsmiljö med TLS, bac
 4. [Backup & återställning](#backup--återställning)
 5. [Övervakning](#övervakning)
 6. [Säkerhetsrekommendationer](#säkerhetsrekommendationer)
+7. [Databasmigreringar](#databasmigreringar)
 
 ---
 
@@ -295,3 +296,36 @@ services:
       CORS_ORIGIN: https://bok.example.se
     restart: always
 ```
+
+---
+
+## Databasmigreringar
+
+Projektet använder **Prisma** för databasschema. Det finns två kommandon som hanterar schemaändringar — de används i olika sammanhang:
+
+| Kommando | Miljö | Beskrivning |
+|----------|-------|-------------|
+| `prisma db push` | **Utveckling** | Synkroniserar schemat direkt utan att skapa migreringsfiler. Snabbt och enkelt under utveckling. |
+| `prisma migrate deploy` | **Produktion** | Kör alla väntande migreringsfiler i ordning. Säkert och repeterbart. |
+
+### Workflow: skapa en ny migrering
+
+1. **Ändra schemat** i `packages/db/prisma/schema.prisma`
+
+2. **Skapa migreringsfil:**
+
+   ```bash
+   pnpm --filter @muninsbok/db exec prisma migrate dev --name beskrivande-namn
+   ```
+
+   Detta skapar en SQL-fil under `packages/db/prisma/migrations/` och uppdaterar den lokala databasen.
+
+3. **Committa** migreringsfilen tillsammans med schemaändringen.
+
+4. **Vid deploy** körs migreringar automatiskt — API-containerns CMD kör `prisma migrate deploy` innan servern startar (se `apps/api/Dockerfile`).
+
+### Viktigt
+
+- Kör **aldrig** `prisma db push` mot produktionsdatabasen — den kan förstöra data vid destruktiva ändringar.
+- Testa migreringar lokalt med `prisma migrate dev` innan deploy.
+- Ta alltid backup före migrering i produktion (se [Backup & återställning](#backup--återställning)).
