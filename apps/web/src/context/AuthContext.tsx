@@ -1,8 +1,8 @@
 /**
  * Authentication context providing user state and auth actions.
  *
- * On mount, if a refresh token exists in storage the provider attempts to
- * obtain a new access token and fetch the current user. This lets sessions
+ * On mount, the provider attempts to refresh the session using the httpOnly
+ * refresh-token cookie (sent automatically by the browser). This lets sessions
  * survive page reloads without requiring re-login.
  */
 import {
@@ -15,7 +15,7 @@ import {
   type ReactNode,
 } from "react";
 import { api, type AuthUser } from "../api";
-import { setTokens, clearTokens, getRefreshToken, onSessionExpired } from "../auth-storage";
+import { setTokens, clearTokens, onSessionExpired } from "../auth-storage";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -32,25 +32,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Attempt to restore session on mount
+  // Attempt to restore session on mount via httpOnly cookie
   useEffect(() => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-      setIsLoading(false);
-      return;
-    }
-
     api
-      .refreshTokens(refreshToken)
+      .refreshTokens()
       .then(({ data }) => {
-        setTokens(data.accessToken, data.refreshToken);
+        setTokens(data.accessToken);
         return api.getMe(data.accessToken);
       })
       .then(({ data: me }) => {
         setUser(me);
       })
       .catch(() => {
-        // Refresh token invalid/expired — clear and require re-login
+        // Refresh token invalid/expired — require re-login
         clearTokens();
       })
       .finally(() => {
@@ -68,13 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const { data } = await api.login(email, password);
-    setTokens(data.accessToken, data.refreshToken);
+    setTokens(data.accessToken);
     setUser(data.user);
   }, []);
 
   const register = useCallback(async (email: string, name: string, password: string) => {
     const { data } = await api.register(email, name, password);
-    setTokens(data.accessToken, data.refreshToken);
+    setTokens(data.accessToken);
     setUser(data.user);
   }, []);
 
