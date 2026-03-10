@@ -1,5 +1,6 @@
 import type {
   Account,
+  AccountAnalysis,
   ApiResponse,
   BalanceSheet,
   Budget,
@@ -30,6 +31,7 @@ import type {
 
 export type {
   Account,
+  AccountAnalysis,
   BalanceSheet,
   Budget,
   BudgetVsActualReport,
@@ -686,6 +688,24 @@ export const api = {
     const query = qs.toString();
     return fetchJson<ApiResponse<BudgetVsActualReport>>(
       `${API_BASE}/organizations/${orgId}/budgets/${budgetId}/vs-actual${query ? `?${query}` : ""}`,
+    );
+  },
+
+  // ── Account Analysis ──────────────────────────────────────
+
+  getAccountAnalysis: (
+    orgId: string,
+    fiscalYearId: string,
+    accountNumber: string,
+    dateRange?: { startDate: string; endDate: string },
+  ) => {
+    const params = new URLSearchParams({ fiscalYearId, accountNumber });
+    if (dateRange) {
+      params.set("startDate", dateRange.startDate);
+      params.set("endDate", dateRange.endDate);
+    }
+    return fetchJson<ApiResponse<AccountAnalysis>>(
+      `${API_BASE}/organizations/${orgId}/reports/account-analysis?${params}`,
     );
   },
 };
