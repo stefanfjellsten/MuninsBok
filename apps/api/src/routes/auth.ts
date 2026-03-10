@@ -23,64 +23,72 @@ export async function authRoutes(fastify: FastifyInstance) {
   }
 
   // ── Register ────────────────────────────────────────────────
-  fastify.post("/register", async (request, reply) => {
-    const { email, name, password } = parseBody(registerSchema, request.body);
+  fastify.post(
+    "/register",
+    { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const { email, name, password } = parseBody(registerSchema, request.body);
 
-    const passwordHash = await hashPassword(password);
+      const passwordHash = await hashPassword(password);
 
-    const result = await userRepo.create({ email, name, passwordHash });
-    if (!result.ok) {
-      const status = result.error.code === "EMAIL_TAKEN" ? 409 : 400;
-      return reply.status(status).send({
-        error: result.error.message,
-        code: result.error.code,
+      const result = await userRepo.create({ email, name, passwordHash });
+      if (!result.ok) {
+        const status = result.error.code === "EMAIL_TAKEN" ? 409 : 400;
+        return reply.status(status).send({
+          error: result.error.message,
+          code: result.error.code,
+        });
+      }
+
+      const user = result.value;
+      const tokens = fastify.generateTokens(user.id, user.email);
+      await storeRefreshToken(user.id, tokens.refreshTokenJti, tokens.refreshTokenExpiresAt);
+
+      return reply.status(201).send({
+        data: {
+          user: { id: user.id, email: user.email, name: user.name },
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        },
       });
-    }
-
-    const user = result.value;
-    const tokens = fastify.generateTokens(user.id, user.email);
-    await storeRefreshToken(user.id, tokens.refreshTokenJti, tokens.refreshTokenExpiresAt);
-
-    return reply.status(201).send({
-      data: {
-        user: { id: user.id, email: user.email, name: user.name },
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-    });
-  });
+    },
+  );
 
   // ── Login ───────────────────────────────────────────────────
-  fastify.post("/login", async (request, reply) => {
-    const { email, password } = parseBody(loginSchema, request.body);
+  fastify.post(
+    "/login",
+    { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const { email, password } = parseBody(loginSchema, request.body);
 
-    const user = await userRepo.findByEmail(email);
-    if (!user) {
-      return reply.status(401).send({
-        error: "Felaktig e-postadress eller lösenord",
-        code: "INVALID_CREDENTIALS",
-      });
-    }
+      const user = await userRepo.findByEmail(email);
+      if (!user) {
+        return reply.status(401).send({
+          error: "Felaktig e-postadress eller lösenord",
+          code: "INVALID_CREDENTIALS",
+        });
+      }
 
-    const valid = await verifyPassword(password, user.passwordHash);
-    if (!valid) {
-      return reply.status(401).send({
-        error: "Felaktig e-postadress eller lösenord",
-        code: "INVALID_CREDENTIALS",
-      });
-    }
+      const valid = await verifyPassword(password, user.passwordHash);
+      if (!valid) {
+        return reply.status(401).send({
+          error: "Felaktig e-postadress eller lösenord",
+          code: "INVALID_CREDENTIALS",
+        });
+      }
 
-    const tokens = fastify.generateTokens(user.id, user.email);
-    await storeRefreshToken(user.id, tokens.refreshTokenJti, tokens.refreshTokenExpiresAt);
+      const tokens = fastify.generateTokens(user.id, user.email);
+      await storeRefreshToken(user.id, tokens.refreshTokenJti, tokens.refreshTokenExpiresAt);
 
-    return {
-      data: {
-        user: { id: user.id, email: user.email, name: user.name },
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      },
-    };
-  });
+      return {
+        data: {
+          user: { id: user.id, email: user.email, name: user.name },
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        },
+      };
+    },
+  );
 
   // ── Refresh ─────────────────────────────────────────────────
   fastify.post("/refresh", { preHandler: [fastify.verifyRefreshToken] }, async (request, reply) => {
