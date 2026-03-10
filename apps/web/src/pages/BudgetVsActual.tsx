@@ -74,12 +74,20 @@ export function BudgetVsActual() {
         <table>
           <thead>
             <tr>
-              <th>Konto</th>
-              <th>Namn</th>
-              <th className="text-right">Budget</th>
-              <th className="text-right">Utfall</th>
-              <th className="text-right">Avvikelse</th>
-              <th className="text-right">%</th>
+              <th scope="col">Konto</th>
+              <th scope="col">Namn</th>
+              <th scope="col" className="text-right">
+                Budget
+              </th>
+              <th scope="col" className="text-right">
+                Utfall
+              </th>
+              <th scope="col" className="text-right">
+                Avvikelse
+              </th>
+              <th scope="col" className="text-right">
+                %
+              </th>
             </tr>
           </thead>
           <tbody>
