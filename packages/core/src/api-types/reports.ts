@@ -444,3 +444,45 @@ export interface BudgetVsActualReport {
   totalDeviation: number;
   generatedAt: string;
 }
+
+// --- Account Analysis (Kontoanalys) ---
+
+export interface AccountAnalysisMonth {
+  /** YYYY-MM */
+  month: string;
+  label: string;
+  /** Kronor */
+  debit: number;
+  /** Kronor */
+  credit: number;
+  /** Kronor (debit - credit) */
+  net: number;
+  /** Kronor — running balance up to and including this month */
+  balance: number;
+  transactionCount: number;
+}
+
+export interface AccountAnalysis {
+  accountNumber: string;
+  accountName: string;
+  /** Kronor */
+  totalDebit: number;
+  /** Kronor */
+  totalCredit: number;
+  /** Kronor */
+  closingBalance: number;
+  months: AccountAnalysisMonth[];
+  /** Number of vouchers touching this account */
+  totalTransactions: number;
+  /** Kronor — average monthly net */
+  averageMonthlyNet: number;
+  /** Kronor — highest monthly net */
+  highestMonthlyNet: number;
+  /** Month label for the highest net */
+  highestMonthLabel: string;
+  /** Kronor — lowest monthly net */
+  lowestMonthlyNet: number;
+  /** Month label for the lowest net */
+  lowestMonthLabel: string;
+  generatedAt: string;
+}
