@@ -318,4 +318,127 @@ export async function reportRoutes(fastify: FastifyInstance) {
       },
     };
   });
+
+  // Account Analysis (Kontoanalys)
+  fastify.get<{
+    Params: { orgId: string };
+    Querystring: {
+      fiscalYearId: string;
+      accountNumber: string;
+      startDate?: string;
+      endDate?: string;
+    };
+  }>("/:orgId/reports/account-analysis", async (request, reply) => {
+    const { fiscalYearId, accountNumber, startDate, endDate } = request.query;
+
+    if (!fiscalYearId) {
+      return reply.status(400).send({ error: "fiscalYearId krävs" });
+    }
+    if (!accountNumber) {
+      return reply.status(400).send({ error: "accountNumber krävs" });
+    }
+
+    const [allVouchers, accounts] = await Promise.all([
+      fastify.repos.vouchers.findByFiscalYear(fiscalYearId, request.params.orgId),
+      fastify.repos.accounts.findByOrganization(request.params.orgId),
+    ]);
+
+    const account = accounts.find((a) => a.number === accountNumber);
+    if (!account) {
+      return reply.status(404).send({ error: "Kontot hittades inte" });
+    }
+
+    const vouchers = filterByDateRange(allVouchers, startDate, endDate);
+
+    // Group transactions by month
+    const monthMap = new Map<string, { debit: number; credit: number; count: number }>();
+
+    for (const voucher of vouchers) {
+      for (const line of voucher.lines) {
+        if (line.accountNumber !== accountNumber) continue;
+
+        const d = voucher.date instanceof Date ? voucher.date : new Date(voucher.date);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+        const entry = monthMap.get(key) ?? { debit: 0, credit: 0, count: 0 };
+        entry.debit += line.debit;
+        entry.credit += line.credit;
+        entry.count += 1;
+        monthMap.set(key, entry);
+      }
+    }
+
+    // Sort months and compute running balance
+    const sortedKeys = [...monthMap.keys()].sort();
+    let runningBalance = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+    let totalTransactions = 0;
+
+    const months = sortedKeys
+      .map((key) => {
+        const entry = monthMap.get(key);
+        if (!entry) return null;
+        const net = entry.debit - entry.credit;
+        runningBalance += net;
+        totalDebit += entry.debit;
+        totalCredit += entry.credit;
+        totalTransactions += entry.count;
+
+        const [year, month] = key.split("-") as [string, string];
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "Maj",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Okt",
+          "Nov",
+          "Dec",
+        ];
+        const label = `${monthNames[parseInt(month, 10) - 1]} ${year}`;
+
+        return {
+          month: key,
+          label,
+          debit: öreToKronor(entry.debit),
+          credit: öreToKronor(entry.credit),
+          net: öreToKronor(net),
+          balance: öreToKronor(runningBalance),
+          transactionCount: entry.count,
+        };
+      })
+      .filter((m) => m !== null);
+
+    // Compute stats
+    const nets = months.map((m) => m.net);
+    const highIdx = nets.length > 0 ? nets.indexOf(Math.max(...nets)) : -1;
+    const lowIdx = nets.length > 0 ? nets.indexOf(Math.min(...nets)) : -1;
+    const avgNet = months.length > 0 ? nets.reduce((a, b) => a + b, 0) / months.length : 0;
+
+    const highEntry = highIdx >= 0 ? months[highIdx] : undefined;
+    const lowEntry = lowIdx >= 0 ? months[lowIdx] : undefined;
+
+    return {
+      data: {
+        accountNumber,
+        accountName: account.name,
+        totalDebit: öreToKronor(totalDebit),
+        totalCredit: öreToKronor(totalCredit),
+        closingBalance: öreToKronor(runningBalance),
+        months,
+        totalTransactions,
+        averageMonthlyNet: Math.round(avgNet * 100) / 100,
+        highestMonthlyNet: highEntry?.net ?? 0,
+        highestMonthLabel: highEntry?.label ?? "–",
+        lowestMonthlyNet: lowEntry?.net ?? 0,
+        lowestMonthLabel: lowEntry?.label ?? "–",
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  });
 }
