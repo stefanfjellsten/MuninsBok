@@ -184,10 +184,12 @@ export function BudgetForm() {
         <table>
           <thead>
             <tr>
-              <th>Konto</th>
-              <th>Månad</th>
-              <th className="text-right">Belopp (kr)</th>
-              <th></th>
+              <th scope="col">Konto</th>
+              <th scope="col">Månad</th>
+              <th scope="col" className="text-right">
+                Belopp (kr)
+              </th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
