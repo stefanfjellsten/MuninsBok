@@ -199,11 +199,15 @@ export function VoucherTemplateForm() {
         <table>
           <thead>
             <tr>
-              <th>Konto</th>
-              <th className="text-right">Debet (kr)</th>
-              <th className="text-right">Kredit (kr)</th>
-              <th>Beskrivning</th>
-              <th></th>
+              <th scope="col">Konto</th>
+              <th scope="col" className="text-right">
+                Debet (kr)
+              </th>
+              <th scope="col" className="text-right">
+                Kredit (kr)
+              </th>
+              <th scope="col">Beskrivning</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
@@ -280,12 +284,12 @@ export function VoucherTemplateForm() {
               </td>
               <td colSpan={2}>
                 {!isBalanced && totalDebit > 0 && (
-                  <span style={{ color: "#c62828" }}>
+                  <span style={{ color: "var(--color-negative)" }}>
                     Differens: {formatAmount(totalDebit - totalCredit)}
                   </span>
                 )}
                 {isBalanced && totalDebit > 0 && (
-                  <span style={{ color: "#2e7d32" }}>✓ Balanserar</span>
+                  <span style={{ color: "var(--color-positive)" }}>✓ Balanserar</span>
                 )}
               </td>
             </tr>
