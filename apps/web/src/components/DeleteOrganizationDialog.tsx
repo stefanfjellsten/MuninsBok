@@ -71,7 +71,7 @@ export function DeleteOrganizationDialog({
           </button>
         </div>
 
-        <p className={dialogStyles.description} style={{ color: "#c62828" }}>
+        <p className={dialogStyles.description} style={{ color: "var(--color-negative)" }}>
           <strong>Varning!</strong> Alla räkenskapsår, konton, verifikat och dokument kopplade till
           denna organisation raderas permanent.
         </p>
