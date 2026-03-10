@@ -12,7 +12,7 @@
   left: 1rem;
   z-index: 200;
   padding: 0.75rem 1.5rem;
-  background-color: #1976d2;
+  background-color: var(--color-primary);
   color: white;
   border-radius: 0 0 4px 4px;
   font-weight: 600;
@@ -30,7 +30,7 @@
   align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .header h1 {
@@ -44,7 +44,7 @@
 }
 
 .nav a {
-  color: #213547;
+  color: var(--color-text);
   text-decoration: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -56,7 +56,7 @@
 }
 
 .nav a:global(.active) {
-  background-color: #1976d2;
+  background-color: var(--color-primary);
   color: white;
 }
 
@@ -67,9 +67,74 @@
 
 .nav-separator {
   width: 1px;
-  background-color: #ddd;
+  background-color: var(--color-border);
   margin: 0 0.5rem;
   align-self: stretch;
+}
+
+/* Reports dropdown */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  background: none;
+  color: var(--color-text);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dropdown-toggle:hover {
+  background-color: #e0e0e0;
+}
+
+.dropdown-active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.dropdown-active:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 200px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem 0;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-menu a {
+  padding: 0.5rem 1rem;
+  border-radius: 0;
+}
+
+.dropdown-menu a:hover {
+  background-color: var(--color-bg);
+}
+
+.dropdown-menu a:global(.active) {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.dropdown-divider {
+  border: none;
+  border-top: 1px solid var(--color-border-light);
+  margin: 0.25rem 0;
 }
 
 .user-area {
@@ -80,7 +145,7 @@
 
 .user-name {
   font-size: 0.875rem;
-  color: #555;
+  color: var(--color-text-subtle);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -143,7 +208,7 @@
     flex-wrap: wrap;
     gap: 0.25rem;
     padding-bottom: 0.25rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--color-border-light);
   }
 
   .nav-group:last-of-type {
