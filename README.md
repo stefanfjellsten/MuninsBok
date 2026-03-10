@@ -68,7 +68,7 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 - CSV (alla rapporter)
 
 ### Autentisering & säkerhet
-- JWT-autentisering (access + refresh-tokens med jti-baserad återkallning)
+- JWT-autentisering (access-token i minnet + refresh-token som httpOnly-cookie med jti-baserad återkallning)
 - Rollbaserad behörighet (OWNER / ADMIN / MEMBER)
 - Audit-logging
 - Rate limiting
@@ -89,13 +89,13 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 
 Applikationen är **produktionsklar** för självhostning av småföretag och föreningar. Följande säkerhetsmekanismer finns på plats:
 
-- **Autentisering**: JWT med access/refresh-token, server-side återkallning (jti), automatisk token-cleanup
+- **Autentisering**: JWT med access-token i minnet, refresh-token som httpOnly-cookie, server-side återkallning (jti), automatisk token-cleanup
 - **Auktorisering**: Rollbaserad behörighet (OWNER / ADMIN / MEMBER) med org-scoped membership
 - **Input**: Zod-validering på alla API-endpoints, body-storleksgräns (1 MB), input-sanitering
 - **Transport**: Helmet-headers, CORS-konfiguration, rate limiting med skärpt gräns på auth-endpoints
 - **Infrastruktur**: Multi-stage Docker, non-root containers, healthchecks, log-rotation, graceful shutdown
 - **Drift**: Request-timeouts, konfigurerbar anslutningspool, strukturerad loggning, audit trail
-- **Tester**: 636 enhetstester + E2E med Playwright, CI via GitHub Actions
+- **Tester**: 652 enhetstester + E2E med Playwright, CI via GitHub Actions
 
 Se [docs/production.md](docs/production.md) för fullständig driftsättningsguide.
 
@@ -109,7 +109,6 @@ Se [docs/production.md](docs/production.md) för fullständig driftsättningsgui
 - Prometheus `/metrics`-endpoint för operationell övervakning
 - CD-pipeline — automatiserad deploy vid merge till main
 - Frontend-komponenttester (React Testing Library)
-- CHANGELOG / formell versionshantering
 
 ### Framtida funktioner
 - Verifikatimport från CSV/Excel (bankutdrag → verifikat)
@@ -245,14 +244,14 @@ muninsbok/
 
 ## Teststatus
 
-**636 enhetstester** fördelade på 56 testfiler:
+**652 enhetstester** fördelade på 54 testfiler:
 
 | Paket | Testfiler | Tester | Vad som testas |
 |-------|-----------|--------|----------------|
 | `@muninsbok/core` | 19 | 286 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, SKV 4700, periodrapport, kontoanalys, boksluts-förhandsvisning, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES), resultatdisposition, budget (budget vs utfall-rapport) |
 | `@muninsbok/db` | 1 | 17 | Prisma→domän-mappers (organisation, räkenskapsår, konto, verifikat, verifikatrad, dokument) |
-| `@muninsbok/api` | 25 | 256 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat, räkenskapsår), rapporter (10 st + dashboard), boksluts-förhandsvisning, health check, felhantering, auth (register/login/refresh/logout), tokenåterkallning, rollhantering, RBAC, audit-logging, rate limiting, input-sanitering, helmet, swagger |
-| `@muninsbok/web` | 6 | 77 | ApiError-klass, fetchJson, auth-storage, verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering, CSV-export, assert-utils |
+| `@muninsbok/api` | 26 | 278 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat, räkenskapsår, budgetar), rapporter (10 st + dashboard), boksluts-förhandsvisning, health check, felhantering, auth (register/login/refresh/logout), httpOnly-cookie, tokenåterkallning, rollhantering, RBAC, audit-logging, rate limiting, input-sanitering, helmet, swagger |
+| `@muninsbok/web` | 6 | 71 | ApiError-klass, fetchJson, auth-storage, verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering, CSV-export, assert-utils |
 
 ---
 
