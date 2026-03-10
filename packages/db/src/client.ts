@@ -10,7 +10,11 @@ function createPrismaClient(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is required");
   }
-  const adapter = new PrismaPg({ connectionString });
+  const poolSize = parseInt(process.env["DATABASE_POOL_SIZE"] ?? "20", 10);
+  const adapter = new PrismaPg({
+    connectionString,
+    max: poolSize,
+  });
   return new PrismaClient({ adapter });
 }
 
