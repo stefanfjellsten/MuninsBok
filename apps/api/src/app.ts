@@ -48,6 +48,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   const fastify = Fastify({
     ...(options.fastifyOptions ?? { logger: false }),
     bodyLimit: 1_048_576, // 1 MB — keep tight; file uploads use multipart streaming
+    connectionTimeout: 10_000, // 10 s — reject slow connections early
+    requestTimeout: 30_000, // 30 s — prevent hung requests in production
   });
 
   // Plugins
