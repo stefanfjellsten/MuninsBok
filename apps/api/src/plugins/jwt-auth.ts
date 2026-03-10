@@ -121,13 +121,22 @@ async function jwtAuth(fastify: FastifyInstance, options: JwtAuthOptions): Promi
 
   /**
    * PreHandler that verifies a refresh token (for the /auth/refresh endpoint).
+   * Reads the token from the `refresh_token` httpOnly cookie.
    * Sets request.user with the refresh token payload.
    */
   fastify.decorate(
     "verifyRefreshToken",
     async function (request: FastifyRequest, reply: FastifyReply) {
       try {
-        const decoded = await request.jwtVerify<JwtPayload>();
+        const token = request.cookies?.["refresh_token"];
+        if (!token) {
+          return reply.status(401).send({
+            error: "Refresh-token saknas",
+            code: "UNAUTHORIZED",
+          });
+        }
+
+        const decoded = fastify.jwt.verify<JwtPayload>(token);
 
         if (decoded.type !== "refresh") {
           return reply.status(401).send({
