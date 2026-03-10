@@ -49,17 +49,21 @@ export function Budgets() {
       </div>
 
       {budgets.length === 0 ? (
-        <p style={{ color: "#666" }}>
+        <p style={{ color: "var(--color-text-muted)" }}>
           Inga budgetar för detta räkenskapsår. Skapa en budget för att jämföra utfall mot plan.
         </p>
       ) : (
         <table>
           <thead>
             <tr>
-              <th>Namn</th>
-              <th className="text-right">Rader</th>
-              <th className="text-right">Totalt (kr)</th>
-              <th></th>
+              <th scope="col">Namn</th>
+              <th scope="col" className="text-right">
+                Rader
+              </th>
+              <th scope="col" className="text-right">
+                Totalt (kr)
+              </th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
@@ -91,7 +95,9 @@ export function Budgets() {
                     </button>
                     {isDeleting ? (
                       <>
-                        <span style={{ marginRight: "0.5rem", color: "#c62828" }}>Ta bort?</span>
+                        <span style={{ marginRight: "0.5rem", color: "var(--color-negative)" }}>
+                          Ta bort?
+                        </span>
                         <button
                           style={{ padding: "0.25rem 0.5rem", marginRight: "0.25rem" }}
                           onClick={() => deleteMutation.mutate(budget.id)}
@@ -110,7 +116,7 @@ export function Budgets() {
                     ) : (
                       <button
                         className="secondary"
-                        style={{ padding: "0.25rem 0.5rem", color: "#c62828" }}
+                        style={{ padding: "0.25rem 0.5rem", color: "var(--color-negative)" }}
                         onClick={() => setDeleteId(budget.id)}
                       >
                         Ta bort
