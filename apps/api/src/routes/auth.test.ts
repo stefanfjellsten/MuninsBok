@@ -53,7 +53,11 @@ describe("auth routes", () => {
         name: "Test User",
       });
       expect(body.data.accessToken).toBeDefined();
-      expect(body.data.refreshToken).toBeDefined();
+      expect(body.data.refreshToken).toBeUndefined();
+
+      // Refresh token must be in httpOnly cookie
+      const cookies = response.cookies as { name: string; value: string; httpOnly?: boolean }[];
+      expect(cookies.find((c) => c.name === "refresh_token")).toBeDefined();
     });
 
     it("returns 409 when email is taken", async () => {
@@ -119,7 +123,10 @@ describe("auth routes", () => {
       const body = response.json();
       expect(body.data.user.id).toBe("user-1");
       expect(body.data.accessToken).toBeDefined();
-      expect(body.data.refreshToken).toBeDefined();
+      expect(body.data.refreshToken).toBeUndefined();
+
+      const cookies = response.cookies as { name: string; value: string }[];
+      expect(cookies.find((c) => c.name === "refresh_token")).toBeDefined();
     });
 
     it("returns 401 for unknown email", async () => {
@@ -167,32 +174,44 @@ describe("auth routes", () => {
   // ── Refresh ─────────────────────────────────────────────────
 
   describe("POST /api/auth/refresh", () => {
-    it("returns new token pair for valid refresh token", async () => {
+    it("returns new token pair for valid refresh token in cookie", async () => {
       const { refreshToken } = app.generateTokens("user-1", "test@example.com");
 
       const response = await app.inject({
         method: "POST",
         url: "/api/auth/refresh",
-        headers: { authorization: `Bearer ${refreshToken}` },
+        cookies: { refresh_token: refreshToken },
       });
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.data.accessToken).toBeDefined();
-      expect(body.data.refreshToken).toBeDefined();
+      expect(body.data.refreshToken).toBeUndefined();
+
+      const cookies = response.cookies as { name: string; value: string }[];
+      expect(cookies.find((c) => c.name === "refresh_token")).toBeDefined();
     });
 
-    it("rejects access token used for refresh", async () => {
+    it("rejects access token used as refresh cookie", async () => {
       const { accessToken } = app.generateTokens("user-1", "test@example.com");
 
       const response = await app.inject({
         method: "POST",
         url: "/api/auth/refresh",
-        headers: { authorization: `Bearer ${accessToken}` },
+        cookies: { refresh_token: accessToken },
       });
 
       expect(response.statusCode).toBe(401);
       expect(response.json()).toMatchObject({ code: "INVALID_TOKEN_TYPE" });
+    });
+
+    it("rejects refresh without cookie", async () => {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/refresh",
+      });
+
+      expect(response.statusCode).toBe(401);
     });
   });
 
