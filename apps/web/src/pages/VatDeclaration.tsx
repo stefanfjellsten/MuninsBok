@@ -107,7 +107,7 @@ function formatKr(amount: number): string {
 // ── Component ───────────────────────────────────────────────
 
 export function VatDeclaration() {
-  const { data, isLoading, error, setDateRange } = useReportQuery(
+  const { data, isLoading, error, setDateRange, organization, fiscalYear } = useReportQuery(
     "vat-declaration",
     api.getVatDeclaration,
   );
@@ -148,6 +148,23 @@ export function VatDeclaration() {
           <>
             <button className="secondary" onClick={handleExportCsv}>
               Exportera CSV
+            </button>
+            <button
+              className="secondary"
+              onClick={async () => {
+                const { exportVatDeclarationPdf } = await import("../utils/pdf");
+                exportVatDeclarationPdf(
+                  decl as unknown as Record<string, unknown>,
+                  SECTIONS,
+                  decl.ruta49,
+                  organization?.name ?? "",
+                  fiscalYear
+                    ? `${new Date(fiscalYear.startDate).toLocaleDateString("sv-SE")} – ${new Date(fiscalYear.endDate).toLocaleDateString("sv-SE")}`
+                    : "",
+                );
+              }}
+            >
+              Exportera PDF
             </button>
             <button className="secondary" onClick={() => window.print()}>
               Skriv ut
