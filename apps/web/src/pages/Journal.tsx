@@ -6,7 +6,10 @@ import { ReportPageTemplate } from "../components/ReportPageTemplate";
 import { useReportQuery } from "../hooks/useReportQuery";
 
 export function Journal() {
-  const { data, isLoading, error, setDateRange } = useReportQuery("journal", api.getJournal);
+  const { data, isLoading, error, setDateRange, organization, fiscalYear } = useReportQuery(
+    "journal",
+    api.getJournal,
+  );
 
   const report = data?.data;
 
@@ -20,32 +23,49 @@ export function Journal() {
       actions={
         report &&
         report.entries.length > 0 && (
-          <button
-            className="secondary"
-            onClick={() => {
-              const rows: string[][] = [];
-              for (const entry of report.entries) {
-                for (const line of entry.lines) {
-                  rows.push([
-                    formatDate(entry.date),
-                    String(entry.voucherNumber),
-                    entry.description,
-                    line.accountNumber,
-                    line.accountName,
-                    csvAmount(line.debit),
-                    csvAmount(line.credit),
-                  ]);
+          <>
+            <button
+              className="secondary"
+              onClick={() => {
+                const rows: string[][] = [];
+                for (const entry of report.entries) {
+                  for (const line of entry.lines) {
+                    rows.push([
+                      formatDate(entry.date),
+                      String(entry.voucherNumber),
+                      entry.description,
+                      line.accountNumber,
+                      line.accountName,
+                      csvAmount(line.debit),
+                      csvAmount(line.credit),
+                    ]);
+                  }
                 }
-              }
-              const csv = toCsv(
-                ["Datum", "Ver.nr", "Beskrivning", "Konto", "Kontonamn", "Debet", "Kredit"],
-                rows,
-              );
-              downloadCsv(csv, "grundbok.csv");
-            }}
-          >
-            Exportera CSV
-          </button>
+                const csv = toCsv(
+                  ["Datum", "Ver.nr", "Beskrivning", "Konto", "Kontonamn", "Debet", "Kredit"],
+                  rows,
+                );
+                downloadCsv(csv, "grundbok.csv");
+              }}
+            >
+              Exportera CSV
+            </button>
+            <button
+              className="secondary"
+              onClick={async () => {
+                const { exportJournalPdf } = await import("../utils/pdf");
+                exportJournalPdf(
+                  report,
+                  organization?.name ?? "",
+                  fiscalYear
+                    ? formatDate(fiscalYear.startDate) + " – " + formatDate(fiscalYear.endDate)
+                    : "",
+                );
+              }}
+            >
+              Exportera PDF
+            </button>
+          </>
         )
       }
       filters={<DateFilter onFilter={setDateRange} />}
