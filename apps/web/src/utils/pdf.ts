@@ -687,3 +687,282 @@ export function exportYearEndClosingPdf(
 
   savePdf(doc, "bokslut-forhandsvisning");
 }
+
+// ── Journal (Grundbok) ──────────────────────────────────────
+
+export function exportJournalPdf(
+  report: {
+    entries: readonly {
+      voucherNumber: number;
+      date: string;
+      description: string;
+      lines: readonly {
+        accountNumber: string;
+        accountName: string;
+        debit: number;
+        credit: number;
+      }[];
+      totalDebit: number;
+      totalCredit: number;
+    }[];
+    totalDebit: number;
+    totalCredit: number;
+  },
+  orgName: string,
+  period: string,
+) {
+  const { doc, startY } = createReportPdf({
+    title: "Grundbok",
+    orgName,
+    period,
+    filename: "grundbok",
+    orientation: "landscape",
+  });
+
+  const body: RowInput[] = [];
+
+  for (const entry of report.entries) {
+    for (let i = 0; i < entry.lines.length; i++) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const line = entry.lines[i]!;
+      body.push([
+        i === 0 ? new Date(entry.date).toLocaleDateString("sv-SE") : "",
+        i === 0 ? String(entry.voucherNumber) : "",
+        i === 0 ? entry.description : "",
+        line.accountNumber,
+        line.accountName,
+        {
+          content: line.debit > 0 ? pdfAmount(line.debit) : "",
+          styles: { halign: "right" as const },
+        },
+        {
+          content: line.credit > 0 ? pdfAmount(line.credit) : "",
+          styles: { halign: "right" as const },
+        },
+      ]);
+    }
+  }
+
+  autoTable(doc, {
+    startY,
+    head: [["Datum", "Ver.nr", "Beskrivning", "Konto", "Kontonamn", "Debet", "Kredit"]],
+    body,
+    foot: [
+      [
+        { content: "Summa", colSpan: 5, styles: { halign: "left" as const } },
+        { content: pdfAmount(report.totalDebit), styles: { halign: "right" as const } },
+        { content: pdfAmount(report.totalCredit), styles: { halign: "right" as const } },
+      ],
+    ],
+    columnStyles: {
+      0: { cellWidth: 22 },
+      1: { cellWidth: 16 },
+      2: { cellWidth: "auto" },
+      3: { cellWidth: 18 },
+    },
+    ...tableStyles,
+  });
+
+  savePdf(doc, "grundbok");
+}
+
+// ── Account Analysis (Kontoanalys) ──────────────────────────
+
+export function exportAccountAnalysisPdf(
+  report: {
+    accountNumber: string;
+    accountName: string;
+    totalDebit: number;
+    totalCredit: number;
+    closingBalance: number;
+    months: readonly {
+      label: string;
+      debit: number;
+      credit: number;
+      net: number;
+      balance: number;
+      transactionCount: number;
+    }[];
+    totalTransactions: number;
+    averageMonthlyNet: number;
+    highestMonthlyNet: number;
+    highestMonthLabel: string;
+    lowestMonthlyNet: number;
+    lowestMonthLabel: string;
+  },
+  orgName: string,
+  period: string,
+) {
+  const { doc, startY } = createReportPdf({
+    title: `Kontoanalys — ${report.accountNumber} ${report.accountName}`,
+    orgName,
+    period,
+    filename: `kontoanalys-${report.accountNumber}`,
+  });
+
+  // Summary section
+  const pageWidth = doc.internal.pageSize.getWidth();
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  const summaryLines = [
+    `Total debet: ${pdfAmount(report.totalDebit)}    Total kredit: ${pdfAmount(report.totalCredit)}    Slutsaldo: ${pdfAmount(report.closingBalance)}`,
+    `Transaktioner: ${report.totalTransactions}    Snitt netto/mån: ${pdfAmount(report.averageMonthlyNet)}`,
+    `Högsta netto: ${pdfAmount(report.highestMonthlyNet)} (${report.highestMonthLabel})    Lägsta netto: ${pdfAmount(report.lowestMonthlyNet)} (${report.lowestMonthLabel})`,
+  ];
+  let y = startY;
+  for (const line of summaryLines) {
+    doc.text(line, pageWidth / 2, y, { align: "center" });
+    y += 5;
+  }
+
+  autoTable(doc, {
+    startY: y + 3,
+    head: [["Månad", "Debet", "Kredit", "Netto", "Saldo", "Transaktioner"]],
+    body: report.months.map((m) => [
+      m.label,
+      { content: pdfAmount(m.debit), styles: { halign: "right" as const } },
+      { content: pdfAmount(m.credit), styles: { halign: "right" as const } },
+      { content: pdfAmount(m.net), styles: { halign: "right" as const } },
+      { content: pdfAmount(m.balance), styles: { halign: "right" as const } },
+      { content: String(m.transactionCount), styles: { halign: "right" as const } },
+    ]),
+    foot: [
+      [
+        { content: "Totalt", styles: { halign: "left" as const } },
+        { content: pdfAmount(report.totalDebit), styles: { halign: "right" as const } },
+        { content: pdfAmount(report.totalCredit), styles: { halign: "right" as const } },
+        { content: pdfAmount(report.closingBalance), styles: { halign: "right" as const } },
+        "",
+        { content: String(report.totalTransactions), styles: { halign: "right" as const } },
+      ],
+    ],
+    ...tableStyles,
+  });
+
+  savePdf(doc, `kontoanalys-${report.accountNumber}`);
+}
+
+// ── Budget vs Actual (Budget mot utfall) ────────────────────
+
+export function exportBudgetVsActualPdf(
+  report: {
+    budgetName: string;
+    rows: readonly {
+      accountNumber: string;
+      accountName: string;
+      budget: number;
+      actual: number;
+      deviation: number;
+      deviationPercent: number | null;
+    }[];
+    totalBudget: number;
+    totalActual: number;
+    totalDeviation: number;
+  },
+  orgName: string,
+) {
+  const { doc, startY } = createReportPdf({
+    title: `Budget mot utfall — ${report.budgetName}`,
+    orgName,
+    period: "",
+    filename: `budget-vs-utfall-${report.budgetName}`,
+  });
+
+  autoTable(doc, {
+    startY,
+    head: [["Konto", "Namn", "Budget", "Utfall", "Avvikelse", "%"]],
+    body: report.rows.map((r) => [
+      r.accountNumber,
+      r.accountName,
+      { content: pdfAmount(r.budget), styles: { halign: "right" as const } },
+      { content: pdfAmount(r.actual), styles: { halign: "right" as const } },
+      { content: pdfAmount(r.deviation), styles: { halign: "right" as const } },
+      {
+        content: r.deviationPercent != null ? `${r.deviationPercent.toFixed(1)}%` : "—",
+        styles: { halign: "right" as const },
+      },
+    ]),
+    foot: [
+      [
+        { content: "Totalt", colSpan: 2, styles: { halign: "left" as const } },
+        { content: pdfAmount(report.totalBudget), styles: { halign: "right" as const } },
+        { content: pdfAmount(report.totalActual), styles: { halign: "right" as const } },
+        { content: pdfAmount(report.totalDeviation), styles: { halign: "right" as const } },
+        "",
+      ],
+    ],
+    columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: "auto" } },
+    ...tableStyles,
+  });
+
+  savePdf(doc, `budget-vs-utfall-${report.budgetName}`);
+}
+
+// ── SKV 4700 VAT Declaration (Momsdeklaration) ─────────────
+
+interface SkvBoxDef {
+  readonly box: number;
+  readonly label: string;
+  readonly key: string;
+}
+
+interface SkvSectionDef {
+  readonly title: string;
+  readonly boxes: readonly SkvBoxDef[];
+}
+
+export function exportVatDeclarationPdf(
+  decl: Record<string, unknown>,
+  sections: readonly SkvSectionDef[],
+  ruta49: number,
+  orgName: string,
+  period: string,
+) {
+  const { doc, startY } = createReportPdf({
+    title: "Momsdeklaration — SKV 4700",
+    orgName,
+    period,
+    filename: "momsdeklaration-skv4700",
+  });
+
+  const body: RowInput[] = [];
+
+  for (const section of sections) {
+    body.push([{ content: section.title, colSpan: 3, styles: { fontStyle: "bold" as const } }]);
+    for (const boxDef of section.boxes) {
+      const val = decl[boxDef.key] as number;
+      body.push([
+        {
+          content: String(boxDef.box).padStart(2, "0"),
+          styles: { fontStyle: "bold" as const, font: "courier" as const },
+        },
+        boxDef.label,
+        { content: pdfAmount(val), styles: { halign: "right" as const } },
+      ]);
+    }
+  }
+
+  // Result row
+  body.push([{ content: "", colSpan: 3 }]);
+  body.push([
+    { content: "49", styles: { fontStyle: "bold" as const, font: "courier" as const } },
+    {
+      content: ruta49 >= 0 ? "Moms att betala" : "Moms att få tillbaka (momsfordran)",
+      styles: { fontStyle: "bold" as const, fontSize: 10 },
+    },
+    {
+      content: pdfAmount(Math.abs(ruta49)),
+      styles: { halign: "right" as const, fontStyle: "bold" as const, fontSize: 10 },
+    },
+  ]);
+
+  autoTable(doc, {
+    startY,
+    head: [["Ruta", "Beskrivning", "Belopp (kr)"]],
+    body,
+    columnStyles: { 0: { cellWidth: 16 }, 1: { cellWidth: "auto" } },
+    ...tableStyles,
+  });
+
+  savePdf(doc, "momsdeklaration-skv4700");
+}
