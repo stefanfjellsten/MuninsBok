@@ -25,7 +25,7 @@ function TestConsumer() {
 
 describe("ToastContext", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
   afterEach(() => {
     vi.useRealTimers();
