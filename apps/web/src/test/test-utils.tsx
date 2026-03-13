@@ -2,6 +2,7 @@ import { type ReactElement } from "react";
 import { render, type RenderOptions } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { LocaleProvider } from "../context/LocaleContext";
 
 /**
  * Creates a fresh QueryClient for each test — prevents shared cache leaks.
@@ -14,7 +15,7 @@ function createTestQueryClient() {
 
 /**
  * Wraps component in the providers needed for most component tests:
- * MemoryRouter + QueryClientProvider.
+ * MemoryRouter + QueryClientProvider + LocaleProvider.
  *
  * Usage:
  *   renderWithProviders(<MyComponent />, { route: "/dashboard" })
@@ -29,9 +30,11 @@ export function renderWithProviders(
 ) {
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
-      </QueryClientProvider>
+      <LocaleProvider>
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+        </QueryClientProvider>
+      </LocaleProvider>
     );
   }
 
