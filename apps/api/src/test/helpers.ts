@@ -125,6 +125,9 @@ export function createMockVoucherTemplateRepo(): MockedRepo<IVoucherTemplateRepo
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    findDueRecurring: vi.fn().mockResolvedValue([]),
+    updateRecurringSchedule: vi.fn(),
+    markRecurringRun: vi.fn().mockResolvedValue(undefined),
   } as MockedRepo<IVoucherTemplateRepository>;
 }
 
