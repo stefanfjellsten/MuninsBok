@@ -486,3 +486,57 @@ export interface AccountAnalysis {
   lowestMonthLabel: string;
   generatedAt: string;
 }
+
+// --- Global Search ---
+
+export interface SearchResultVoucher {
+  id: string;
+  number: number;
+  date: string;
+  description: string;
+  /** Kronor */
+  amount: number;
+}
+
+export interface SearchResultAccount {
+  number: string;
+  name: string;
+  type: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  vouchers: SearchResultVoucher[];
+  accounts: SearchResultAccount[];
+  totalHits: number;
+}
+
+// --- Dashboard Enhanced (trendlinjer, årsjämförelse, prognos) ---
+
+export interface MonthlyComparison {
+  month: string;
+  currentIncome: number;
+  currentExpense: number;
+  previousIncome: number;
+  previousExpense: number;
+}
+
+export interface DashboardForecast {
+  /** Projected monthly income (linear trend) */
+  projectedIncome: number;
+  /** Projected monthly expense (linear trend) */
+  projectedExpense: number;
+  /** Projected net result at year end */
+  projectedYearEndResult: number;
+  /** Number of data points used for projection */
+  dataPoints: number;
+}
+
+export interface DashboardEnhanced extends DashboardSummary {
+  /** Year-over-year comparison (current vs previous fiscal year) */
+  yearComparison: MonthlyComparison[];
+  /** Previous year net result, null if no previous year */
+  previousYearResult: number | null;
+  /** Linear forecast based on current trend */
+  forecast: DashboardForecast | null;
+}
