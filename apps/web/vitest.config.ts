@@ -3,7 +3,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-    environment: "node",
+    environment: "jsdom",
+    setupFiles: ["src/test/setup.ts"],
+    css: { modules: { classNameStrategy: "non-scoped" } },
     coverage: {
       provider: "v8",
       include: ["src/**/*.ts", "src/**/*.tsx"],
