@@ -124,6 +124,8 @@ export interface IFiscalYearRepository {
 export interface IVoucherTemplateRepository {
   findByOrganization(organizationId: string): Promise<VoucherTemplate[]>;
   findById(id: string, organizationId: string): Promise<VoucherTemplate | null>;
+  /** Find recurring templates due for execution (nextRunDate <= asOf). */
+  findDueRecurring(organizationId: string, asOf: Date): Promise<VoucherTemplate[]>;
   create(
     organizationId: string,
     input: CreateVoucherTemplateInput,
@@ -133,6 +135,18 @@ export interface IVoucherTemplateRepository {
     organizationId: string,
     input: UpdateVoucherTemplateInput,
   ): Promise<Result<VoucherTemplate, VoucherTemplateError>>;
+  updateRecurringSchedule(
+    id: string,
+    organizationId: string,
+    schedule: {
+      isRecurring: boolean;
+      frequency?: "MONTHLY" | "QUARTERLY";
+      dayOfMonth?: number;
+      nextRunDate?: Date;
+      recurringEndDate?: Date | null;
+    },
+  ): Promise<VoucherTemplate | null>;
+  markRecurringRun(id: string, nextRunDate: Date): Promise<void>;
   delete(id: string, organizationId: string): Promise<boolean>;
 }
 
