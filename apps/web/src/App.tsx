@@ -1,6 +1,7 @@
 import { Routes, Route, NavLink, Navigate, useLocation } from "react-router-dom";
 import { OrganizationProvider, useOrganization } from "./context/OrganizationContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LocaleProvider, useLocale } from "./context/LocaleContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import styles from "./App.module.css";
 import { OrganizationSelect } from "./components/OrganizationSelect";
@@ -47,6 +48,7 @@ const VoucherListReport = lazy(() =>
   import("./pages/VoucherListReport").then((m) => ({ default: m.VoucherListReport })),
 );
 const SieExport = lazy(() => import("./pages/SieExport").then((m) => ({ default: m.SieExport })));
+const CsvImport = lazy(() => import("./pages/CsvImport").then((m) => ({ default: m.CsvImport })));
 const FiscalYears = lazy(() =>
   import("./pages/FiscalYears").then((m) => ({ default: m.FiscalYears })),
 );
@@ -101,6 +103,7 @@ function WelcomePage() {
 function AppContent() {
   const { organization, fiscalYear, organizations } = useOrganization();
   const { logout, user } = useAuth();
+  const { locale, setLocale, t } = useLocale();
   const [reportsOpen, setReportsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const reportsRef = useRef<HTMLDivElement>(null);
@@ -143,13 +146,22 @@ function AppContent() {
             <button
               className="secondary"
               onClick={() => setSearchOpen(true)}
-              title="Sök (Ctrl+K)"
+              title={`${t("common.search")} (Ctrl+K)`}
               style={{ whiteSpace: "nowrap", fontSize: "0.85rem" }}
             >
-              🔍 Sök
+              🔍 {t("common.search")}
             </button>
           )}
           <OrganizationSelect />
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as "sv" | "en")}
+            aria-label={t("nav.language")}
+            style={{ padding: "0.25rem 0.5rem", fontSize: "0.85rem" }}
+          >
+            <option value="sv">🇸🇪 SV</option>
+            <option value="en">🇬🇧 EN</option>
+          </select>
           <ThemeToggle />
           {user && (
             <div className={styles.userArea}>
@@ -157,7 +169,7 @@ function AppContent() {
                 {user.name}
               </span>
               <button className="secondary" onClick={logout} style={{ whiteSpace: "nowrap" }}>
-                Logga ut
+                {t("nav.logout")}
               </button>
             </div>
           )}
@@ -172,11 +184,11 @@ function AppContent() {
         <>
           <nav className={`${styles.nav} mb-2`} aria-label="Huvudnavigation">
             <span className={styles.navGroup}>
-              <NavLink to="/dashboard">Översikt</NavLink>
-              <NavLink to="/vouchers">Verifikat</NavLink>
-              <NavLink to="/templates">Mallar</NavLink>
-              <NavLink to="/budgets">Budget</NavLink>
-              <NavLink to="/accounts">Kontoplan</NavLink>
+              <NavLink to="/dashboard">{t("nav.dashboard")}</NavLink>
+              <NavLink to="/vouchers">{t("nav.vouchers")}</NavLink>
+              <NavLink to="/templates">{t("nav.templates")}</NavLink>
+              <NavLink to="/budgets">{t("nav.budgets")}</NavLink>
+              <NavLink to="/accounts">{t("nav.accounts")}</NavLink>
             </span>
             <span className={styles.navSeparator} aria-hidden="true" />
             <div className={styles.dropdown} ref={reportsRef}>
@@ -187,7 +199,7 @@ function AppContent() {
                 aria-expanded={reportsOpen}
                 aria-haspopup="true"
               >
-                Rapporter ▾
+                {t("nav.reports")} ▾
               </button>
               {reportsOpen && (
                 <div className={styles.dropdownMenu} role="menu">
@@ -196,21 +208,21 @@ function AppContent() {
                     role="menuitem"
                     onClick={() => setReportsOpen(false)}
                   >
-                    Råbalans
+                    {t("nav.trialBalance")}
                   </NavLink>
                   <NavLink
                     to="/reports/income-statement"
                     role="menuitem"
                     onClick={() => setReportsOpen(false)}
                   >
-                    Resultaträkning
+                    {t("nav.incomeStatement")}
                   </NavLink>
                   <NavLink
                     to="/reports/balance-sheet"
                     role="menuitem"
                     onClick={() => setReportsOpen(false)}
                   >
-                    Balansräkning
+                    {t("nav.balanceSheet")}
                   </NavLink>
                   <NavLink to="/reports/vat" role="menuitem" onClick={() => setReportsOpen(false)}>
                     Moms
@@ -262,16 +274,17 @@ function AppContent() {
               )}
             </div>
             <span className={styles.navSeparator} aria-hidden="true" />
-            <NavLink to="/sie">SIE</NavLink>
-            <NavLink to="/fiscal-years">Räkenskapsår</NavLink>
-            <NavLink to="/year-end-closing">Bokslut</NavLink>
+            <NavLink to="/sie">{t("nav.sieExport")}</NavLink>
+            <NavLink to="/csv-import">{t("nav.csvImport")}</NavLink>
+            <NavLink to="/fiscal-years">{t("nav.fiscalYears")}</NavLink>
+            <NavLink to="/year-end-closing">{t("nav.yearEndClosing")}</NavLink>
             <NavLink to="/result-disposition">Disposition</NavLink>
             <NavLink to="/year-end-summary">Sammanställning</NavLink>
-            <NavLink to="/members">Medlemmar</NavLink>
+            <NavLink to="/members">{t("nav.members")}</NavLink>
           </nav>
 
           <main id="main-content">
-            <Suspense fallback={<div className="loading">Laddar…</div>}>
+            <Suspense fallback={<div className="loading">{t("common.loading")}</div>}>
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard />} />
@@ -297,6 +310,7 @@ function AppContent() {
                 <Route path="/reports/general-ledger" element={<GeneralLedger />} />
                 <Route path="/reports/voucher-list" element={<VoucherListReport />} />
                 <Route path="/sie" element={<SieExport />} />
+                <Route path="/csv-import" element={<CsvImport />} />
                 <Route path="/fiscal-years" element={<FiscalYears />} />
                 <Route path="/year-end-closing" element={<YearEndClosing />} />
                 <Route path="/result-disposition" element={<ResultDisposition />} />
@@ -330,23 +344,25 @@ function AppContent() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={<div className="loading">Laddar…</div>}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <OrganizationProvider>
-                  <AppContent />
-                </OrganizationProvider>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </Suspense>
-    </AuthProvider>
+    <LocaleProvider>
+      <AuthProvider>
+        <Suspense fallback={<div className="loading">Loading…</div>}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <OrganizationProvider>
+                    <AppContent />
+                  </OrganizationProvider>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
+      </AuthProvider>
+    </LocaleProvider>
   );
 }
