@@ -540,3 +540,23 @@ export interface DashboardEnhanced extends DashboardSummary {
   /** Linear forecast based on current trend */
   forecast: DashboardForecast | null;
 }
+
+// --- CSV Import ---
+
+export interface CsvImportPreviewRow {
+  date: string;
+  description: string;
+  /** Kronor */
+  amount: number;
+}
+
+export interface CsvImportPreview {
+  rows: CsvImportPreviewRow[];
+  errors: { row: number; message: string }[];
+  totalRows: number;
+}
+
+export interface CsvImportVoucherResult {
+  vouchersCreated: number;
+  errors: string[];
+}
