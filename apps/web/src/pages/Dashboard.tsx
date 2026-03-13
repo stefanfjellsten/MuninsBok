@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useOrganization } from "../context/OrganizationContext";
 import { defined } from "../utils/assert";
 import { api } from "../api";
+import type { DashboardEnhanced } from "../api";
 import { formatAmount, formatDate } from "../utils/formatting";
 import styles from "./Dashboard.module.css";
 
@@ -33,6 +34,137 @@ function formatMonth(key: string): string {
   const parts = key.split("-");
   const monthIndex = parseInt(parts[1] ?? "0", 10) - 1;
   return MONTH_NAMES[monthIndex] ?? key;
+}
+
+function YearComparison({
+  data,
+  previousYearResult,
+}: {
+  data: DashboardEnhanced["yearComparison"];
+  previousYearResult: number | null;
+}) {
+  const maxVal = data.reduce(
+    (max, m) =>
+      Math.max(max, m.currentIncome, m.currentExpense, m.previousIncome, m.previousExpense),
+    0,
+  );
+
+  return (
+    <div className="card">
+      <h3 style={{ marginBottom: "0.75rem" }}>
+        Årsjämförelse
+        {previousYearResult !== null && (
+          <span
+            style={{
+              fontSize: "0.85rem",
+              fontWeight: 400,
+              color: "var(--color-text-muted)",
+              marginLeft: "0.75rem",
+            }}
+          >
+            Förra årets resultat: {formatAmount(previousYearResult)} kr
+          </span>
+        )}
+      </h3>
+      <div className={styles.comparisonTable}>
+        <table>
+          <caption className="sr-only">Jämförelse med föregående år per månad</caption>
+          <thead>
+            <tr>
+              <th scope="col">Månad</th>
+              <th scope="col" className="text-right">
+                Intäkter (nu)
+              </th>
+              <th scope="col" className="text-right">
+                Intäkter (förra)
+              </th>
+              <th scope="col" className="text-right">
+                Kostn. (nu)
+              </th>
+              <th scope="col" className="text-right">
+                Kostn. (förra)
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((m) => (
+              <tr key={m.month}>
+                <td>{MONTH_NAMES[parseInt(m.month, 10) - 1] ?? m.month}</td>
+                <td className="text-right amount">{formatAmount(m.currentIncome)}</td>
+                <td className="text-right" style={{ color: "var(--color-text-muted)" }}>
+                  {formatAmount(m.previousIncome)}
+                </td>
+                <td className="text-right amount">{formatAmount(m.currentExpense)}</td>
+                <td className="text-right" style={{ color: "var(--color-text-muted)" }}>
+                  {formatAmount(m.previousExpense)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {/* Mini comparison bar chart */}
+      <div
+        className={styles.chartContainer}
+        role="img"
+        aria-label="Stapeldiagram med årsjämförelse"
+        style={{ marginTop: "1rem" }}
+      >
+        {data.map((m) => (
+          <div key={m.month} className={styles.chartColumn}>
+            <div className={styles.chartBars}>
+              <div
+                className={`${styles.chartBar} ${styles.chartBarIncome}`}
+                style={{
+                  height: maxVal > 0 ? `${(m.currentIncome / maxVal) * 100}%` : "0%",
+                }}
+                title={`Intäkter (nu): ${formatAmount(m.currentIncome)} kr`}
+              />
+              <div
+                className={`${styles.chartBar} ${styles.chartBarPrevIncome}`}
+                style={{
+                  height: maxVal > 0 ? `${(m.previousIncome / maxVal) * 100}%` : "0%",
+                }}
+                title={`Intäkter (förra): ${formatAmount(m.previousIncome)} kr`}
+              />
+              <div
+                className={`${styles.chartBar} ${styles.chartBarExpense}`}
+                style={{
+                  height: maxVal > 0 ? `${(m.currentExpense / maxVal) * 100}%` : "0%",
+                }}
+                title={`Kostnader (nu): ${formatAmount(m.currentExpense)} kr`}
+              />
+              <div
+                className={`${styles.chartBar} ${styles.chartBarPrevExpense}`}
+                style={{
+                  height: maxVal > 0 ? `${(m.previousExpense / maxVal) * 100}%` : "0%",
+                }}
+                title={`Kostnader (förra): ${formatAmount(m.previousExpense)} kr`}
+              />
+            </div>
+            <div className={styles.chartLabel}>
+              {MONTH_NAMES[parseInt(m.month, 10) - 1] ?? m.month}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className={styles.chartLegend}>
+        <span className={styles.legendItem}>
+          <span className={`${styles.legendSwatch} ${styles.legendIncome}`} /> Intäkter (nu)
+        </span>
+        <span className={styles.legendItem}>
+          <span className={`${styles.legendSwatch} ${styles.legendPrevIncome}`} /> Intäkter (förra)
+        </span>
+        <span className={styles.legendItem}>
+          <span className={`${styles.legendSwatch} ${styles.legendExpense}`} /> Kostnader (nu)
+        </span>
+        <span className={styles.legendItem}>
+          <span className={`${styles.legendSwatch} ${styles.legendPrevExpense}`} /> Kostnader
+          (förra)
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export function Dashboard() {
@@ -146,6 +278,43 @@ export function Dashboard() {
             </span>
           </div>
         </div>
+      )}
+
+      {/* Forecast */}
+      {d.forecast && (
+        <div className="card">
+          <h3 style={{ marginBottom: "0.75rem" }}>Prognos</h3>
+          <div className={styles.dashboardGrid}>
+            <div className={`card ${styles.dashboardStat}`}>
+              <div className={styles.statLabel}>Proj. intäkter (nästa mån)</div>
+              <div className={`${styles.statValue} ${styles.positive}`}>
+                {formatAmount(d.forecast.projectedIncome)} kr
+              </div>
+            </div>
+            <div className={`card ${styles.dashboardStat}`}>
+              <div className={styles.statLabel}>Proj. kostnader (nästa mån)</div>
+              <div className={`${styles.statValue} ${styles.negative}`}>
+                {formatAmount(d.forecast.projectedExpense)} kr
+              </div>
+            </div>
+            <div className={`card ${styles.dashboardStat}`}>
+              <div className={styles.statLabel}>Proj. årsresultat</div>
+              <div
+                className={`${styles.statValue} ${d.forecast.projectedYearEndResult >= 0 ? styles.positive : styles.negative}`}
+              >
+                {formatAmount(d.forecast.projectedYearEndResult)} kr
+              </div>
+            </div>
+          </div>
+          <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginTop: "0.5rem" }}>
+            Baserat på linjär trend från {d.forecast.dataPoints} månader
+          </p>
+        </div>
+      )}
+
+      {/* Year-over-year comparison */}
+      {d.yearComparison.length > 0 && (
+        <YearComparison data={d.yearComparison} previousYearResult={d.previousYearResult} />
       )}
 
       {/* Account type distribution */}
