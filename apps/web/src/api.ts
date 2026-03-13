@@ -6,6 +6,8 @@ import type {
   Budget,
   BudgetVsActualReport,
   ClosingPreviewResponse,
+  CsvImportPreview,
+  CsvImportVoucherResult,
   DashboardEnhanced,
   DocumentMeta,
   FiscalYear,
@@ -37,6 +39,8 @@ export type {
   Budget,
   BudgetVsActualReport,
   ClosingPreviewResponse,
+  CsvImportPreview,
+  CsvImportVoucherResult,
   DashboardEnhanced,
   DashboardSummary,
   DocumentMeta,
@@ -544,6 +548,33 @@ export const api = {
       method: "DELETE",
     }),
 
+  updateRecurringSchedule: (
+    orgId: string,
+    templateId: string,
+    data: {
+      isRecurring: boolean;
+      frequency?: "MONTHLY" | "QUARTERLY";
+      dayOfMonth?: number;
+      nextRunDate?: string;
+      recurringEndDate?: string | null;
+    },
+  ) =>
+    fetchJson<ApiResponse<VoucherTemplate>>(
+      `${API_BASE}/organizations/${orgId}/templates/${templateId}/recurring`,
+      { method: "PUT", body: JSON.stringify(data) },
+    ),
+
+  getDueRecurringTemplates: (orgId: string) =>
+    fetchJson<ApiResponse<VoucherTemplate[]>>(
+      `${API_BASE}/organizations/${orgId}/templates/recurring/due`,
+    ),
+
+  executeRecurringTemplates: (orgId: string, fiscalYearId: string) =>
+    fetchJson<ApiResponse<{ vouchersCreated: number; errors: string[] }>>(
+      `${API_BASE}/organizations/${orgId}/templates/recurring/execute`,
+      { method: "POST", body: JSON.stringify({ fiscalYearId }) },
+    ),
+
   // ── Budgets ───────────────────────────────────────────────
 
   getBudgets: (orgId: string, fiscalYearId: string) =>
@@ -616,4 +647,41 @@ export const api = {
       `${API_BASE}/organizations/${orgId}/reports/account-analysis?${params}`,
     );
   },
+
+  // ── CSV Import ────────────────────────────────────────────
+
+  parseCsv: (orgId: string, csv: string) =>
+    fetchJson<ApiResponse<{ headers: string[]; sampleRows: string[][]; totalRows: number }>>(
+      `${API_BASE}/organizations/${orgId}/import/csv/parse`,
+      { method: "POST", body: JSON.stringify({ csv }) },
+    ),
+
+  previewCsvImport: (
+    orgId: string,
+    csv: string,
+    mapping: { dateColumn: number; descriptionColumn: number; amountColumn: number },
+  ) =>
+    fetchJson<ApiResponse<CsvImportPreview>>(
+      `${API_BASE}/organizations/${orgId}/import/csv/preview`,
+      { method: "POST", body: JSON.stringify({ csv, mapping }) },
+    ),
+
+  executeCsvImport: (
+    orgId: string,
+    data: {
+      fiscalYearId: string;
+      bankAccountNumber: string;
+      defaultAccountNumber: string;
+      transactions: Array<{
+        date: string;
+        description: string;
+        amount: number;
+        accountNumber?: string;
+      }>;
+    },
+  ) =>
+    fetchJson<ApiResponse<CsvImportVoucherResult>>(
+      `${API_BASE}/organizations/${orgId}/import/csv/execute`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
 };
