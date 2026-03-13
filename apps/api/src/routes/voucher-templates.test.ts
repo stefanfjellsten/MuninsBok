@@ -234,4 +234,200 @@ describe("Voucher template routes", () => {
       expect(res.statusCode).toBe(404);
     });
   });
+
+  // ── PUT /:orgId/templates/:templateId/recurring ───────────
+
+  describe("PUT /:orgId/templates/:templateId/recurring", () => {
+    it("enables recurring schedule on a template", async () => {
+      const scheduledTemplate = {
+        ...sampleTemplate,
+        isRecurring: true,
+        frequency: "MONTHLY" as const,
+        dayOfMonth: 25,
+        nextRunDate: new Date("2025-02-25"),
+      };
+      repos.voucherTemplates.updateRecurringSchedule.mockResolvedValue(scheduledTemplate);
+
+      const res = await app.inject({
+        method: "PUT",
+        url: `${baseUrl}/tpl-1/recurring`,
+        payload: {
+          isRecurring: true,
+          frequency: "MONTHLY",
+          dayOfMonth: 25,
+          nextRunDate: "2025-02-25T00:00:00.000Z",
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data.isRecurring).toBe(true);
+      expect(body.data.frequency).toBe("MONTHLY");
+    });
+
+    it("disables recurring schedule", async () => {
+      const disabledTemplate = { ...sampleTemplate, isRecurring: false };
+      repos.voucherTemplates.updateRecurringSchedule.mockResolvedValue(disabledTemplate);
+
+      const res = await app.inject({
+        method: "PUT",
+        url: `${baseUrl}/tpl-1/recurring`,
+        payload: { isRecurring: false },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).data.isRecurring).toBe(false);
+    });
+
+    it("returns 400 when recurring without frequency", async () => {
+      const res = await app.inject({
+        method: "PUT",
+        url: `${baseUrl}/tpl-1/recurring`,
+        payload: { isRecurring: true, dayOfMonth: 15 },
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("returns 400 when recurring without dayOfMonth", async () => {
+      const res = await app.inject({
+        method: "PUT",
+        url: `${baseUrl}/tpl-1/recurring`,
+        payload: { isRecurring: true, frequency: "MONTHLY" },
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("returns 404 when template not found", async () => {
+      repos.voucherTemplates.updateRecurringSchedule.mockResolvedValue(null);
+
+      const res = await app.inject({
+        method: "PUT",
+        url: `${baseUrl}/missing/recurring`,
+        payload: { isRecurring: true, frequency: "QUARTERLY", dayOfMonth: 1 },
+      });
+
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
+  // ── GET /:orgId/templates/recurring/due ───────────────────
+
+  describe("GET /:orgId/templates/recurring/due", () => {
+    it("returns due recurring templates", async () => {
+      const dueTemplate = {
+        ...sampleTemplate,
+        isRecurring: true,
+        frequency: "MONTHLY" as const,
+        dayOfMonth: 1,
+        nextRunDate: new Date("2024-12-01"),
+      };
+      repos.voucherTemplates.findDueRecurring.mockResolvedValue([dueTemplate]);
+
+      const res = await app.inject({
+        method: "GET",
+        url: `${baseUrl}/recurring/due`,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].isRecurring).toBe(true);
+    });
+
+    it("returns empty list when no templates are due", async () => {
+      repos.voucherTemplates.findDueRecurring.mockResolvedValue([]);
+
+      const res = await app.inject({
+        method: "GET",
+        url: `${baseUrl}/recurring/due`,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).data).toHaveLength(0);
+    });
+  });
+
+  // ── POST /:orgId/templates/recurring/execute ──────────────
+
+  describe("POST /:orgId/templates/recurring/execute", () => {
+    const dueTemplate = {
+      ...sampleTemplate,
+      isRecurring: true,
+      frequency: "MONTHLY" as const,
+      dayOfMonth: 15,
+      nextRunDate: new Date("2024-12-15"),
+    };
+
+    it("returns empty result when no templates are due", async () => {
+      repos.voucherTemplates.findDueRecurring.mockResolvedValue([]);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `${baseUrl}/recurring/execute`,
+        payload: { fiscalYearId: "fy-1" },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data.vouchersCreated).toBe(0);
+      expect(body.data.errors).toHaveLength(0);
+    });
+
+    it("creates vouchers from due templates", async () => {
+      repos.voucherTemplates.findDueRecurring.mockResolvedValue([dueTemplate]);
+      repos.vouchers.create.mockResolvedValue(
+        ok({ id: "v-1", voucherNumber: 1, date: new Date(), lines: [] }),
+      );
+      repos.voucherTemplates.markRecurringRun.mockResolvedValue(undefined);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `${baseUrl}/recurring/execute`,
+        payload: { fiscalYearId: "fy-1" },
+      });
+
+      expect(res.statusCode).toBe(201);
+      const body = JSON.parse(res.body);
+      expect(body.data.vouchersCreated).toBe(1);
+      expect(repos.vouchers.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: orgId,
+          fiscalYearId: "fy-1",
+          description: "Månadshyra",
+        }),
+      );
+      expect(repos.voucherTemplates.markRecurringRun).toHaveBeenCalled();
+    });
+
+    it("reports errors for failed voucher creation", async () => {
+      repos.voucherTemplates.findDueRecurring.mockResolvedValue([dueTemplate]);
+      repos.vouchers.create.mockResolvedValue(
+        err({ code: "INVALID", message: "Ogiltigt verifikat" }),
+      );
+
+      const res = await app.inject({
+        method: "POST",
+        url: `${baseUrl}/recurring/execute`,
+        payload: { fiscalYearId: "fy-1" },
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.data.vouchersCreated).toBe(0);
+      expect(body.data.errors).toHaveLength(1);
+      expect(body.data.errors[0]).toContain("Månadshyra");
+    });
+
+    it("returns 400 without fiscalYearId", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: `${baseUrl}/recurring/execute`,
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+  });
 });
