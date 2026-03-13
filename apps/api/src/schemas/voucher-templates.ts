@@ -19,3 +19,15 @@ export const updateVoucherTemplateSchema = z.object({
   description: z.string().max(1000).nullable().optional(),
   lines: z.array(createVoucherTemplateLineSchema).min(1).optional(),
 });
+
+export const updateRecurringScheduleSchema = z.object({
+  isRecurring: z.boolean(),
+  frequency: z.enum(["MONTHLY", "QUARTERLY"]).optional(),
+  dayOfMonth: z.number().int().min(1).max(28).optional(),
+  nextRunDate: z.string().optional(),
+  recurringEndDate: z.string().nullable().optional(),
+});
+
+export const executeRecurringSchema = z.object({
+  fiscalYearId: z.string().min(1),
+});
