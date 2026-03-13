@@ -6,7 +6,7 @@ import type {
   Budget,
   BudgetVsActualReport,
   ClosingPreviewResponse,
-  DashboardSummary,
+  DashboardEnhanced,
   DocumentMeta,
   FiscalYear,
   GeneralLedgerReport,
@@ -19,6 +19,7 @@ import type {
   PaginatedApiResponse,
   PeriodReportResponse,
   ResultDispositionPreviewResponse,
+  SearchResponse,
   SkVatDeclarationResponse,
   TrialBalance,
   VatReport,
@@ -36,6 +37,7 @@ export type {
   Budget,
   BudgetVsActualReport,
   ClosingPreviewResponse,
+  DashboardEnhanced,
   DashboardSummary,
   DocumentMeta,
   FiscalYear,
@@ -52,6 +54,7 @@ export type {
   PeriodType,
   ReportSection,
   ResultDispositionPreviewResponse,
+  SearchResponse,
   SkVatDeclarationResponse,
   TrialBalance,
   VatReport,
@@ -221,8 +224,13 @@ function createReportFetcher<T>(endpoint: string) {
 export const api = {
   // Organizations
   getDashboard: (orgId: string, fiscalYearId: string) =>
-    fetchJson<ApiResponse<DashboardSummary>>(
+    fetchJson<ApiResponse<DashboardEnhanced>>(
       `${API_BASE}/organizations/${orgId}/dashboard?fiscalYearId=${fiscalYearId}`,
+    ),
+
+  search: (orgId: string, fiscalYearId: string, query: string) =>
+    fetchJson<ApiResponse<SearchResponse>>(
+      `${API_BASE}/organizations/${orgId}/search?fiscalYearId=${encodeURIComponent(fiscalYearId)}&q=${encodeURIComponent(query)}`,
     ),
 
   getOrganizations: () => fetchJson<ApiResponse<Organization[]>>(`${API_BASE}/organizations`),
