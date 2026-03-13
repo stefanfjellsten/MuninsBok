@@ -161,6 +161,38 @@
   color: var(--color-text-subtle);
 }
 
+/* Previous-year comparison bars */
+.chart-bar-prev-income {
+  background-color: var(--color-positive-bar);
+  opacity: 0.35;
+}
+
+.chart-bar-prev-expense {
+  background-color: var(--color-negative-bar);
+  opacity: 0.35;
+}
+
+.legend-prev-income {
+  background-color: var(--color-positive-bar);
+  opacity: 0.35;
+}
+
+.legend-prev-expense {
+  background-color: var(--color-negative-bar);
+  opacity: 0.35;
+}
+
+/* Year comparison table */
+.comparison-table {
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
+}
+
+.comparison-table table {
+  width: 100%;
+  font-size: 0.9rem;
+}
+
 /* Tablet (≤ 900px) */
 @media screen and (max-width: 900px) {
   .dashboard-grid {
