@@ -101,12 +101,20 @@ export interface VoucherTemplateLine {
   description?: string;
 }
 
+export type RecurringFrequency = "MONTHLY" | "QUARTERLY";
+
 export interface VoucherTemplate {
   id: string;
   organizationId: string;
   name: string;
   description?: string;
   lines: VoucherTemplateLine[];
+  isRecurring: boolean;
+  frequency?: RecurringFrequency;
+  dayOfMonth?: number;
+  nextRunDate?: string;
+  lastRunDate?: string;
+  recurringEndDate?: string;
   createdAt: string;
   updatedAt: string;
 }
