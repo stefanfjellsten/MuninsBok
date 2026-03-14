@@ -128,6 +128,7 @@ export function createVoucherFromInput(
       ...(line.description !== undefined && { description: line.description }),
     })),
     documentIds: input.documentIds ?? [],
+    status: "DRAFT",
     createdAt: now,
     updatedAt: now,
   };
