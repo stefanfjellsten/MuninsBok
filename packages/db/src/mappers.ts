@@ -20,6 +20,10 @@ import type {
   ApprovalStep as CoreApprovalStep,
   VoucherStatus as CoreVoucherStatus,
   ApprovalStepStatus as CoreApprovalStepStatus,
+  Customer as CoreCustomer,
+  Invoice as CoreInvoice,
+  InvoiceLine as CoreInvoiceLine,
+  InvoiceStatus as CoreInvoiceStatus,
 } from "@muninsbok/core/types";
 
 /**
@@ -296,5 +300,79 @@ export function toApprovalStep(step: Prisma.ApprovalStepGetPayload<{}>): CoreApp
     comment: step.comment,
     decidedAt: step.decidedAt,
     createdAt: step.createdAt,
+  };
+}
+
+/**
+ * Map Prisma Customer to Core Customer
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Prisma GetPayload generic
+export function toCustomer(customer: Prisma.CustomerGetPayload<{}>): CoreCustomer {
+  return {
+    id: customer.id,
+    organizationId: customer.organizationId,
+    customerNumber: customer.customerNumber,
+    name: customer.name,
+    ...(customer.email != null && { email: customer.email }),
+    ...(customer.phone != null && { phone: customer.phone }),
+    ...(customer.address != null && { address: customer.address }),
+    ...(customer.postalCode != null && { postalCode: customer.postalCode }),
+    ...(customer.city != null && { city: customer.city }),
+    ...(customer.country != null && { country: customer.country }),
+    ...(customer.orgNumber != null && { orgNumber: customer.orgNumber }),
+    ...(customer.vatNumber != null && { vatNumber: customer.vatNumber }),
+    ...(customer.reference != null && { reference: customer.reference }),
+    paymentTermDays: customer.paymentTermDays,
+    createdAt: customer.createdAt,
+    updatedAt: customer.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma InvoiceLine to Core InvoiceLine
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Prisma GetPayload generic
+export function toInvoiceLine(line: Prisma.InvoiceLineGetPayload<{}>): CoreInvoiceLine {
+  return {
+    id: line.id,
+    invoiceId: line.invoiceId,
+    description: line.description,
+    quantity: line.quantity,
+    unitPrice: line.unitPrice,
+    vatRate: line.vatRate,
+    amount: line.amount,
+    ...(line.accountNumber != null && { accountNumber: line.accountNumber }),
+  };
+}
+
+/**
+ * Map Prisma Invoice (with lines) to Core Invoice
+ */
+const invoiceInclude = { lines: true } as const;
+
+export function toInvoice(
+  inv: Prisma.InvoiceGetPayload<{ include: typeof invoiceInclude }>,
+): CoreInvoice {
+  return {
+    id: inv.id,
+    organizationId: inv.organizationId,
+    customerId: inv.customerId,
+    invoiceNumber: inv.invoiceNumber,
+    status: inv.status as CoreInvoiceStatus,
+    issueDate: inv.issueDate,
+    dueDate: inv.dueDate,
+    ...(inv.paidDate != null && { paidDate: inv.paidDate }),
+    ...(inv.ourReference != null && { ourReference: inv.ourReference }),
+    ...(inv.yourReference != null && { yourReference: inv.yourReference }),
+    ...(inv.notes != null && { notes: inv.notes }),
+    subtotal: inv.subtotal,
+    vatAmount: inv.vatAmount,
+    totalAmount: inv.totalAmount,
+    ...(inv.voucherId != null && { voucherId: inv.voucherId }),
+    ...(inv.creditedInvoiceId != null && { creditedInvoiceId: inv.creditedInvoiceId }),
+    ...(inv.sentAt != null && { sentAt: inv.sentAt }),
+    lines: inv.lines.map(toInvoiceLine),
+    createdAt: inv.createdAt,
+    updatedAt: inv.updatedAt,
   };
 }
