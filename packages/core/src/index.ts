@@ -15,3 +15,6 @@ export * from "./chart-of-accounts/index.js";
 
 // SIE import/export
 export * from "./sie/index.js";
+
+// Approval workflow
+export * from "./approval/index.js";
