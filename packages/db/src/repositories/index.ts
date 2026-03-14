@@ -9,3 +9,5 @@ export { UserRepository } from "./user.repository.js";
 export { RefreshTokenRepository } from "./refresh-token.repository.js";
 export { ApprovalRuleRepository } from "./approval-rule.repository.js";
 export { ApprovalStepRepository } from "./approval-step.repository.js";
+export { CustomerRepository } from "./customer.repository.js";
+export { InvoiceRepository } from "./invoice.repository.js";
