@@ -16,6 +16,10 @@ import type {
   MemberRole as CoreMemberRole,
   OrganizationMember as CoreOrganizationMember,
   OrganizationMemberWithUser as CoreOrganizationMemberWithUser,
+  ApprovalRule as CoreApprovalRule,
+  ApprovalStep as CoreApprovalStep,
+  VoucherStatus as CoreVoucherStatus,
+  ApprovalStepStatus as CoreApprovalStepStatus,
 } from "@muninsbok/core/types";
 
 /**
@@ -68,7 +72,7 @@ export function toAccount(account: Prisma.AccountGetPayload<{}>): CoreAccount {
  */
 export function toVoucher(
   voucher: Prisma.VoucherGetPayload<{
-    include: { lines: true; documents: true; correctedByVoucher: true };
+    include: { lines: true; documents: true; correctedByVoucher: true; approvalSteps: true };
   }>,
 ): CoreVoucher {
   return {
@@ -84,6 +88,12 @@ export function toVoucher(
     ...(voucher.correctsVoucherId != null && { correctsVoucherId: voucher.correctsVoucherId }),
     ...(voucher.correctedByVoucher != null && {
       correctedByVoucherId: voucher.correctedByVoucher.id,
+    }),
+    status: voucher.status as CoreVoucherStatus,
+    ...(voucher.submittedAt != null && { submittedAt: voucher.submittedAt }),
+    ...(voucher.submittedByUserId != null && { submittedByUserId: voucher.submittedByUserId }),
+    ...(voucher.approvalSteps.length > 0 && {
+      approvalSteps: voucher.approvalSteps.map(toApprovalStep),
     }),
     createdAt: voucher.createdAt,
     updatedAt: voucher.updatedAt,
@@ -250,5 +260,41 @@ export function toBudget(
     entries: budget.entries.map(toBudgetEntry),
     createdAt: budget.createdAt,
     updatedAt: budget.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma ApprovalRule to Core ApprovalRule
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Prisma GetPayload generic
+export function toApprovalRule(rule: Prisma.ApprovalRuleGetPayload<{}>): CoreApprovalRule {
+  return {
+    id: rule.id,
+    organizationId: rule.organizationId,
+    name: rule.name,
+    minAmount: rule.minAmount,
+    maxAmount: rule.maxAmount,
+    requiredRole: rule.requiredRole as CoreMemberRole,
+    stepOrder: rule.stepOrder,
+    createdAt: rule.createdAt,
+    updatedAt: rule.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma ApprovalStep to Core ApprovalStep
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Prisma GetPayload generic
+export function toApprovalStep(step: Prisma.ApprovalStepGetPayload<{}>): CoreApprovalStep {
+  return {
+    id: step.id,
+    voucherId: step.voucherId,
+    stepOrder: step.stepOrder,
+    requiredRole: step.requiredRole as CoreMemberRole,
+    approverUserId: step.approverUserId,
+    status: step.status as CoreApprovalStepStatus,
+    comment: step.comment,
+    decidedAt: step.decidedAt,
+    createdAt: step.createdAt,
   };
 }
