@@ -11,4 +11,6 @@ export * from "./budget.js";
 export * from "./document.js";
 export * from "./user.js";
 export * from "./approval.js";
+export * from "./customer.js";
+export * from "./invoice.js";
 export * from "./repositories.js";
