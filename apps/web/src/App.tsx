@@ -82,6 +82,14 @@ const ApprovalRules = lazy(() =>
 const PendingApprovals = lazy(() =>
   import("./pages/PendingApprovals").then((m) => ({ default: m.PendingApprovals })),
 );
+const Customers = lazy(() => import("./pages/Customers").then((m) => ({ default: m.Customers })));
+const Invoices = lazy(() => import("./pages/Invoices").then((m) => ({ default: m.Invoices })));
+const InvoiceForm = lazy(() =>
+  import("./pages/InvoiceForm").then((m) => ({ default: m.InvoiceForm })),
+);
+const InvoiceDetail = lazy(() =>
+  import("./pages/InvoiceDetail").then((m) => ({ default: m.InvoiceDetail })),
+);
 const NotFound = lazy(() => import("./pages/NotFound").then((m) => ({ default: m.NotFound })));
 const Login = lazy(() => import("./pages/Login").then((m) => ({ default: m.Login })));
 const Register = lazy(() => import("./pages/Register").then((m) => ({ default: m.Register })));
@@ -289,6 +297,9 @@ function AppContent() {
             <NavLink to="/members">{t("nav.members")}</NavLink>
             <NavLink to="/approval-rules">{t("nav.approval")}</NavLink>
             <NavLink to="/pending-approvals">{t("approval.pending")}</NavLink>
+            <span className={styles.navSeparator} aria-hidden="true" />
+            <NavLink to="/customers">{t("nav.customers")}</NavLink>
+            <NavLink to="/invoices">{t("nav.invoices")}</NavLink>
           </nav>
 
           <main id="main-content">
@@ -326,6 +337,11 @@ function AppContent() {
                 <Route path="/members" element={<Members />} />
                 <Route path="/approval-rules" element={<ApprovalRules />} />
                 <Route path="/pending-approvals" element={<PendingApprovals />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/invoices" element={<Invoices />} />
+                <Route path="/invoices/new" element={<InvoiceForm />} />
+                <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
+                <Route path="/invoices/:invoiceId/edit" element={<InvoiceForm />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
