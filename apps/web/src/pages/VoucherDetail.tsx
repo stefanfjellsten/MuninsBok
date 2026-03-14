@@ -2,15 +2,36 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useOrganization } from "../context/OrganizationContext";
+import { useLocale } from "../context/LocaleContext";
+import { useToast } from "../context/ToastContext";
 import { defined } from "../utils/assert";
-import { api } from "../api";
+import { api, type VoucherStatus } from "../api";
 import { formatAmount, formatDate, oreToKronor } from "../utils/formatting";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DocumentSection } from "../components/DocumentSection";
 
+const STATUS_BADGE: Record<
+  VoucherStatus,
+  {
+    className: string;
+    key:
+      | "approval.statusDraft"
+      | "approval.statusPending"
+      | "approval.statusApproved"
+      | "approval.statusRejected";
+  }
+> = {
+  DRAFT: { className: "badge", key: "approval.statusDraft" },
+  PENDING: { className: "badge badge-warning", key: "approval.statusPending" },
+  APPROVED: { className: "badge badge-success", key: "approval.statusApproved" },
+  REJECTED: { className: "badge badge-danger", key: "approval.statusRejected" },
+};
+
 export function VoucherDetail() {
   const { voucherId } = useParams<{ voucherId: string }>();
   const { organization, fiscalYear } = useOrganization();
+  const { t } = useLocale();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showCorrect, setShowCorrect] = useState(false);
@@ -30,6 +51,19 @@ export function VoucherDetail() {
     },
   });
 
+  const submitMutation = useMutation({
+    mutationFn: () => api.submitVoucherForApproval(defined(organization).id, defined(voucherId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["voucher", organization?.id, voucherId] });
+      queryClient.invalidateQueries({ queryKey: ["vouchers", organization?.id, fiscalYear?.id] });
+      queryClient.invalidateQueries({ queryKey: ["pendingApprovals"] });
+      addToast(t("approval.submit"), "success");
+    },
+    onError: (err: Error) => {
+      addToast(err.message, "error");
+    },
+  });
+
   if (isLoading) return <div className="loading">Laddar verifikat...</div>;
   if (error) return <div className="error">Fel: {(error as Error).message}</div>;
 
@@ -46,6 +80,11 @@ export function VoucherDetail() {
       <div className="flex justify-between items-center mb-2">
         <h2>
           Verifikat #{voucher.number}
+          {voucher.status && (
+            <span className={STATUS_BADGE[voucher.status].className} style={{ marginLeft: 8 }}>
+              {t(STATUS_BADGE[voucher.status].key)}
+            </span>
+          )}
           {isCorrected && (
             <span className="badge badge-warning" style={{ marginLeft: 8 }}>
               Rättat
@@ -61,6 +100,11 @@ export function VoucherDetail() {
           <button className="secondary" onClick={() => navigate("/vouchers")}>
             ← Tillbaka
           </button>
+          {voucher.status === "DRAFT" && !isCorrected && !isCorrection && (
+            <button onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
+              {t("approval.submit")}
+            </button>
+          )}
           {!isCorrected && !isCorrection && (
             <button className="danger" onClick={() => setShowCorrect(true)}>
               Rätta
