@@ -31,6 +31,8 @@ model Organization {
   voucherTemplates VoucherTemplate[]
   budgets     Budget[]
   approvalRules ApprovalRule[]
+  customers   Customer[]
+  invoices    Invoice[]
 
   @@map("organizations")
 }
@@ -185,6 +187,7 @@ model Voucher {
   lines        VoucherLine[]
   documents    Document[]
   approvalSteps ApprovalStep[]
+  invoice      Invoice?
 
   @@unique([fiscalYearId, number])
   @@index([organizationId])
@@ -397,4 +400,113 @@ model ApprovalStep {
   @@index([approverUserId])
   @@index([status])
   @@map("approval_steps")
+}
+
+// ============================================
+// CUSTOMER (kund)
+// ============================================
+
+model Customer {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  customerNumber Int      @map("customer_number")
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  postalCode     String?  @map("postal_code")
+  city           String?
+  country        String?  @default("SE")
+  orgNumber      String?  @map("org_number")
+  vatNumber      String?  @map("vat_number")
+  reference      String?
+  paymentTermDays Int     @default(30) @map("payment_term_days")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
+
+  @@unique([organizationId, customerNumber])
+  @@index([organizationId])
+  @@map("customers")
+}
+
+// ============================================
+// INVOICE (faktura)
+// ============================================
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+  CREDITED
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String        @map("organization_id")
+  customerId     String        @map("customer_id")
+  invoiceNumber  Int           @map("invoice_number")
+  status         InvoiceStatus @default(DRAFT)
+  issueDate      DateTime      @map("issue_date")
+  dueDate        DateTime      @map("due_date")
+  paidDate       DateTime?     @map("paid_date")
+  ourReference   String?       @map("our_reference")
+  yourReference  String?       @map("your_reference")
+  notes          String?
+  /// Amount before VAT in öre
+  subtotal       Int           @default(0)
+  /// VAT amount in öre
+  vatAmount      Int           @default(0) @map("vat_amount")
+  /// Total amount incl. VAT in öre
+  totalAmount    Int           @default(0) @map("total_amount")
+  /// Link to generated voucher when paid
+  voucherId      String?       @unique @map("voucher_id")
+  /// For credit invoices: the original invoice being credited
+  creditedInvoiceId String?    @map("credited_invoice_id")
+  sentAt         DateTime?     @map("sent_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer        Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  voucher         Voucher?     @relation(fields: [voucherId], references: [id])
+  creditedInvoice Invoice?     @relation("InvoiceCredit", fields: [creditedInvoiceId], references: [id])
+  creditInvoices  Invoice[]    @relation("InvoiceCredit")
+  lines           InvoiceLine[]
+
+  @@unique([organizationId, invoiceNumber])
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([organizationId, status])
+  @@map("invoices")
+}
+
+// ============================================
+// INVOICE LINE (fakturarad)
+// ============================================
+
+model InvoiceLine {
+  id            String  @id @default(cuid())
+  invoiceId     String  @map("invoice_id")
+  description   String
+  quantity       Int     @default(100)
+  /// Unit price in öre
+  unitPrice     Int     @map("unit_price")
+  /// VAT rate as percentage × 100 (e.g. 2500 = 25%)
+  vatRate       Int     @default(2500) @map("vat_rate")
+  /// Line amount excl. VAT in öre (quantity/100 × unitPrice)
+  amount        Int     @default(0)
+  accountNumber String? @map("account_number")
+
+  // Relations
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
 }
