@@ -19,6 +19,8 @@ import type {
   IRefreshTokenRepository,
   IApprovalRuleRepository,
   IApprovalStepRepository,
+  ICustomerRepository,
+  IInvoiceRepository,
 } from "@muninsbok/core/types";
 
 type MockedRepo<T> = {
@@ -166,6 +168,31 @@ export function createMockApprovalStepRepo(): MockedRepo<IApprovalStepRepository
   } as MockedRepo<IApprovalStepRepository>;
 }
 
+export function createMockCustomerRepo(): MockedRepo<ICustomerRepository> {
+  return {
+    findByOrganization: vi.fn().mockResolvedValue([]),
+    findById: vi.fn(),
+    getNextCustomerNumber: vi.fn().mockResolvedValue(1),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  } as MockedRepo<ICustomerRepository>;
+}
+
+export function createMockInvoiceRepo(): MockedRepo<IInvoiceRepository> {
+  return {
+    findByOrganization: vi.fn().mockResolvedValue([]),
+    findById: vi.fn(),
+    findByCustomer: vi.fn().mockResolvedValue([]),
+    findByStatus: vi.fn().mockResolvedValue([]),
+    getNextInvoiceNumber: vi.fn().mockResolvedValue(1),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateStatus: vi.fn(),
+    delete: vi.fn(),
+  } as MockedRepo<IInvoiceRepository>;
+}
+
 interface MockPrismaModel {
   findUnique: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
@@ -199,6 +226,8 @@ export interface MockRepos {
   refreshTokens: MockedRepo<IRefreshTokenRepository>;
   approvalRules: MockedRepo<IApprovalRuleRepository>;
   approvalSteps: MockedRepo<IApprovalStepRepository>;
+  customers: MockedRepo<ICustomerRepository>;
+  invoices: MockedRepo<IInvoiceRepository>;
   prisma: MockPrisma;
 }
 
@@ -264,6 +293,8 @@ export function createMockRepos(): MockRepos {
     refreshTokens: createMockRefreshTokenRepo(),
     approvalRules: createMockApprovalRuleRepo(),
     approvalSteps: createMockApprovalStepRepo(),
+    customers: createMockCustomerRepo(),
+    invoices: createMockInvoiceRepo(),
     prisma,
   };
 }
