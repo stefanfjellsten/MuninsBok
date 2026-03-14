@@ -174,6 +174,7 @@ describe("Fiscal year routes", () => {
           number: 1,
           date: new Date("2024-03-01"),
           description: "Försäljning",
+          status: "DRAFT",
           lines: [
             { id: "l1", voucherId: "v1", accountNumber: "1930", debit: 100000, credit: 0 },
             { id: "l2", voucherId: "v1", accountNumber: "3000", debit: 0, credit: 100000 },
@@ -189,6 +190,7 @@ describe("Fiscal year routes", () => {
           number: 2,
           date: new Date("2024-04-01"),
           description: "Kostnad",
+          status: "DRAFT",
           lines: [
             { id: "l3", voucherId: "v2", accountNumber: "5010", debit: 30000, credit: 0 },
             { id: "l4", voucherId: "v2", accountNumber: "1930", debit: 0, credit: 30000 },
@@ -277,6 +279,7 @@ describe("Fiscal year routes", () => {
       number: 1,
       date: new Date("2024-03-01"),
       description: "Försäljning",
+      status: "DRAFT",
       lines: [
         { id: "l1", voucherId: "v1", accountNumber: "1930", debit: 200_000, credit: 0 },
         { id: "l2", voucherId: "v1", accountNumber: "3000", debit: 0, credit: 200_000 },
@@ -292,6 +295,7 @@ describe("Fiscal year routes", () => {
       number: 2,
       date: new Date("2024-06-01"),
       description: "Kostnad",
+      status: "DRAFT",
       lines: [
         { id: "l3", voucherId: "v2", accountNumber: "5010", debit: 80_000, credit: 0 },
         { id: "l4", voucherId: "v2", accountNumber: "1930", debit: 0, credit: 80_000 },
@@ -308,6 +312,7 @@ describe("Fiscal year routes", () => {
       number: 3,
       date: new Date("2024-12-31"),
       description: "Bokslutsverifikat",
+      status: "DRAFT",
       lines: [
         { id: "l5", voucherId: "v3", accountNumber: "3000", debit: 200_000, credit: 0 },
         { id: "l6", voucherId: "v3", accountNumber: "5010", debit: 0, credit: 80_000 },
@@ -396,6 +401,7 @@ describe("Fiscal year routes", () => {
         number: 1,
         date: new Date("2025-01-01"),
         description: "Resultatdisposition",
+        status: "DRAFT",
         lines: [],
         documentIds: [],
         createdAt: new Date(),
