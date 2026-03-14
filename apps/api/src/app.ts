@@ -29,6 +29,7 @@ import { searchRoutes } from "./routes/search.js";
 import { csvImportRoutes } from "./routes/csv-import.js";
 import { authRoutes } from "./routes/auth.js";
 import { approvalRoutes } from "./routes/approval.js";
+import { invoiceRoutes } from "./routes/invoices.js";
 import { memberRoutes } from "./routes/members.js";
 import { metricsRoute } from "./routes/metrics.js";
 import metricsPlugin from "./plugins/metrics.js";
@@ -225,6 +226,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       await instance.register(dashboardRoutes);
       await instance.register(searchRoutes);
       await instance.register(csvImportRoutes);
+      await instance.register(invoiceRoutes);
       // Approval routes require RBAC (only available with JWT)
       if (options.jwtSecret) {
         await instance.register(approvalRoutes);
