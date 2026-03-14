@@ -2,6 +2,8 @@ import type {
   Account,
   AccountAnalysis,
   ApiResponse,
+  ApprovalRuleEntity,
+  ApprovalStepEntity,
   BalanceSheet,
   Budget,
   BudgetVsActualReport,
@@ -35,6 +37,8 @@ import type {
 export type {
   Account,
   AccountAnalysis,
+  ApprovalRuleEntity,
+  ApprovalStepEntity,
   BalanceSheet,
   Budget,
   BudgetVsActualReport,
@@ -65,6 +69,7 @@ export type {
   Voucher,
   VoucherGaps,
   VoucherListReportData,
+  VoucherStatus,
   VoucherTemplate,
   YearEndSummaryResponse,
 } from "@muninsbok/core/api-types";
@@ -683,5 +688,75 @@ export const api = {
     fetchJson<ApiResponse<CsvImportVoucherResult>>(
       `${API_BASE}/organizations/${orgId}/import/csv/execute`,
       { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  // ── Approval ──────────────────────────────────────────────
+
+  getApprovalRules: (orgId: string) =>
+    fetchJson<ApiResponse<ApprovalRuleEntity[]>>(
+      `${API_BASE}/organizations/${orgId}/approval-rules`,
+    ),
+
+  createApprovalRule: (
+    orgId: string,
+    data: {
+      name: string;
+      minAmount: number;
+      maxAmount?: number | null;
+      requiredRole: string;
+      stepOrder: number;
+    },
+  ) =>
+    fetchJson<ApiResponse<ApprovalRuleEntity>>(
+      `${API_BASE}/organizations/${orgId}/approval-rules`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  updateApprovalRule: (
+    orgId: string,
+    ruleId: string,
+    data: {
+      name?: string;
+      minAmount?: number;
+      maxAmount?: number | null;
+      requiredRole?: string;
+      stepOrder?: number;
+    },
+  ) =>
+    fetchJson<ApiResponse<ApprovalRuleEntity>>(
+      `${API_BASE}/organizations/${orgId}/approval-rules/${ruleId}`,
+      { method: "PUT", body: JSON.stringify(data) },
+    ),
+
+  deleteApprovalRule: (orgId: string, ruleId: string) =>
+    fetchVoid(`${API_BASE}/organizations/${orgId}/approval-rules/${ruleId}`, {
+      method: "DELETE",
+    }),
+
+  submitVoucherForApproval: (orgId: string, voucherId: string) =>
+    fetchJson<ApiResponse<Voucher>>(
+      `${API_BASE}/organizations/${orgId}/vouchers/${voucherId}/submit`,
+      { method: "POST" },
+    ),
+
+  decideApprovalStep: (
+    orgId: string,
+    voucherId: string,
+    stepId: string,
+    data: { decision: "APPROVED" | "REJECTED"; comment?: string },
+  ) =>
+    fetchJson<ApiResponse<Voucher>>(
+      `${API_BASE}/organizations/${orgId}/vouchers/${voucherId}/approval-steps/${stepId}/decide`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  getPendingApprovals: (orgId: string) =>
+    fetchJson<ApiResponse<ApprovalStepEntity[]>>(
+      `${API_BASE}/organizations/${orgId}/approval-steps/pending`,
+    ),
+
+  getVoucherApprovalSteps: (orgId: string, voucherId: string) =>
+    fetchJson<ApiResponse<ApprovalStepEntity[]>>(
+      `${API_BASE}/organizations/${orgId}/vouchers/${voucherId}/approval-steps`,
     ),
 };
