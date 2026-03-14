@@ -75,11 +75,31 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 - CSV (alla rapporter)
 - Verifikatimport från CSV (bankutdrag → verifikat) med 4-stegs wizard (uppladdning → kolumnmappning → förhandsgranskning → resultat)
 
+### Attestflöde
+- Konfigurera attestregler baserat på beloppsintervall och rollkrav
+- Flerstegsattest med stöd för stegordning
+- Skicka verifikat för attestering
+- Godkänn eller avvisa med valfri kommentar
+- Visa väntande attester per organisation
+- Automatgodkännande när inga matchande regler finns
+
+### Fakturering
+- Kundregister med automatisk kundnumrering
+- Skapa, redigera och radera fakturor med dynamiska rader
+- Automatisk beloppsberäkning (netto, moms, totalt) i öre
+- Momshantering med valfria satser (25 %, 12 %, 6 %, 0 %)
+- Statushantering: utkast → skickad → betald/förfallen/makulerad/krediterad
+- Statusvalidering med tillståndsmaskin (ogiltig övergång nekas)
+- Kreditfakturor (länkning till originalfaktura)
+- Koppling faktura → verifikat vid betalning
+- Kundvy med alla fakturor för en kund
+- Statusfilter på fakturalista
+
 ### Flerspråksstöd (i18n)
 - Svenska (standard) och engelska
 - Språkväljare i headern
 - Sparas i localStorage — val kvarstår mellan sessioner
-- ~150 översättningsnycklar som täcker alla delar av appen
+- ~230 översättningsnycklar som täcker alla delar av appen
 
 ### Autentisering & säkerhet
 - JWT-autentisering (access-token i minnet + refresh-token som httpOnly-cookie med jti-baserad återkallning)
@@ -112,7 +132,7 @@ Applikationen är **produktionsklar** för självhostning av småföretag och f�
 - **Transport**: Helmet-headers, CORS-konfiguration, rate limiting med skärpt gräns på auth-endpoints
 - **Infrastruktur**: Multi-stage Docker, non-root containers, healthchecks, log-rotation, graceful shutdown
 - **Drift**: Request-timeouts, konfigurerbar anslutningspool, strukturerad loggning, audit trail
-- **Tester**: 814+ enhetstester (inkl. React Testing Library-komponenttester) + E2E med Playwright, CI via GitHub Actions
+- **Tester**: 911+ enhetstester (inkl. React Testing Library-komponenttester) + E2E med Playwright, CI via GitHub Actions
 
 Se [docs/production.md](docs/production.md) för fullständig driftsättningsguide.
 
@@ -120,9 +140,7 @@ Se [docs/production.md](docs/production.md) för fullständig driftsättningsgui
 
 ## Framtida utveckling
 - Bankkoppling
-- Fakturering
 - OCR/kvitto-tolkning
-- Komplett attestflöde
 
 ---
 
@@ -245,13 +263,13 @@ muninsbok/
 
 ## Teststatus
 
-**814+ enhetstester** fördelade på 71+ testfiler:
+**911+ enhetstester** fördelade på 76+ testfiler:
 
 | Paket | Testfiler | Tester | Vad som testas |
 |-------|-----------|--------|----------------|
-| `@muninsbok/core` | 21 | 316 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, SKV 4700, periodrapport, kontoanalys, boksluts-förhandsvisning, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES), resultatdisposition, budget (budget vs utfall-rapport), CSV-import (parser, delimiter-detection, datum-/beloppsformatering), i18n (sv/en-ordlistor, translate, createTranslator) |
+| `@muninsbok/core` | 25 | 360 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, SKV 4700, periodrapport, kontoanalys, boksluts-förhandsvisning, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES), resultatdisposition, budget (budget vs utfall-rapport), CSV-import (parser, delimiter-detection, datum-/beloppsformatering), i18n (sv/en-ordlistor, translate, createTranslator), fakturaberäkning (radbelopp, moms, totalsummor, statusövergångsmaskin) |
 | `@muninsbok/db` | 1 | 17 | Prisma→domän-mappers (organisation, räkenskapsår, konto, verifikat, verifikatrad, dokument) |
-| `@muninsbok/api` | 30 | 320 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat, räkenskapsår, budgetar), rapporter (10 st + dashboard), global sökning, boksluts-förhandsvisning, health check, Prometheus metrics, felhantering, auth (register/login/refresh/logout), httpOnly-cookie, tokenåterkallning, rollhantering, RBAC, audit-logging, rate limiting, input-sanitering, helmet, swagger, CSV-import (parse/preview/execute-endpoints), återkommande mallar (schema/due/execute-endpoints) |
+| `@muninsbok/api` | 31 | 373 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat, räkenskapsår, budgetar, kunder, fakturor), rapporter (10 st + dashboard), global sökning, boksluts-förhandsvisning, health check, Prometheus metrics, felhantering, auth (register/login/refresh/logout), httpOnly-cookie, tokenåterkallning, rollhantering, RBAC, audit-logging, rate limiting, input-sanitering, helmet, swagger, CSV-import (parse/preview/execute-endpoints), återkommande mallar (schema/due/execute-endpoints), attestflöde (regler CRUD, skicka/godkänn/avvisa), fakturering (kunder CRUD, fakturor CRUD, statusändringar) |
 | `@muninsbok/web` | 19 | 161 | ApiError-klass, fetchJson, auth-storage, dark mode (ThemeContext), verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering, CSV-export, assert-utils, LocaleContext (flerspråksstöd), **komponenttester (React Testing Library)**: ThemeToggle, ConfirmDialog, DateFilter, ErrorBoundary, ReportPageTemplate, ReportSectionRows, ProtectedRoute, ToastContext, Login, NotFound, SearchDialog |
 
 ---
