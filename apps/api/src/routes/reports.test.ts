@@ -30,6 +30,7 @@ describe("Report routes", () => {
       number: 1,
       date: new Date("2024-03-01"),
       description: "Medlemsavgift",
+      status: "DRAFT",
       lines: [
         { id: "l1", voucherId: "v1", accountNumber: "1930", debit: 50000, credit: 0 },
         { id: "l2", voucherId: "v1", accountNumber: "3000", debit: 0, credit: 50000 },
@@ -45,6 +46,7 @@ describe("Report routes", () => {
       number: 2,
       date: new Date("2024-04-01"),
       description: "Hyra",
+      status: "DRAFT",
       lines: [
         { id: "l3", voucherId: "v2", accountNumber: "5010", debit: 20000, credit: 0 },
         { id: "l4", voucherId: "v2", accountNumber: "1930", debit: 0, credit: 20000 },
@@ -270,6 +272,7 @@ describe("Report routes", () => {
         number: 1,
         date: new Date("2024-03-01"),
         description: "Försäljning 25% moms",
+        status: "DRAFT",
         lines: [
           { id: "l1", voucherId: "v1", accountNumber: "1910", debit: 12500, credit: 0 },
           { id: "l2", voucherId: "v1", accountNumber: "3001", debit: 0, credit: 10000 },
@@ -286,6 +289,7 @@ describe("Report routes", () => {
         number: 2,
         date: new Date("2024-04-01"),
         description: "Inköp",
+        status: "DRAFT",
         lines: [
           { id: "l4", voucherId: "v2", accountNumber: "4000", debit: 8000, credit: 0 },
           { id: "l5", voucherId: "v2", accountNumber: "2640", debit: 2000, credit: 0 },
