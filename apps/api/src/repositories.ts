@@ -12,6 +12,8 @@ import type {
   IDocumentRepository,
   IUserRepository,
   IRefreshTokenRepository,
+  IApprovalRuleRepository,
+  IApprovalStepRepository,
 } from "@muninsbok/core/types";
 import {
   type PrismaClient,
@@ -24,6 +26,8 @@ import {
   DocumentRepository,
   UserRepository,
   RefreshTokenRepository,
+  ApprovalRuleRepository,
+  ApprovalStepRepository,
 } from "@muninsbok/db";
 
 export interface Repositories {
@@ -36,6 +40,8 @@ export interface Repositories {
   readonly documents: IDocumentRepository;
   readonly users: IUserRepository;
   readonly refreshTokens: IRefreshTokenRepository;
+  readonly approvalRules: IApprovalRuleRepository;
+  readonly approvalSteps: IApprovalStepRepository;
   readonly prisma: PrismaClient;
 }
 
@@ -51,6 +57,8 @@ export function createRepositories(prisma: PrismaClient): Repositories {
     documents: new DocumentRepository(prisma),
     users: new UserRepository(prisma),
     refreshTokens: new RefreshTokenRepository(prisma),
+    approvalRules: new ApprovalRuleRepository(prisma),
+    approvalSteps: new ApprovalStepRepository(prisma),
     prisma,
   };
 }
