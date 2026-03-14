@@ -16,6 +16,7 @@ const voucherInclude = {
   lines: true,
   documents: true,
   correctedByVoucher: true,
+  approvalSteps: true,
 } as const;
 
 export class FiscalYearRepository implements IFiscalYearRepository {
