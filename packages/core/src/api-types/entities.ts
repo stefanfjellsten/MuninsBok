@@ -126,6 +126,11 @@ export interface ReceiptOcrAnalysis {
   warnings: string[];
 }
 
+export interface ReceiptOcrStatus {
+  pdfEnabled: boolean;
+  supportedMimeTypes: string[];
+}
+
 export type MemberRole = "OWNER" | "ADMIN" | "MEMBER";
 
 export interface OrgMember {
