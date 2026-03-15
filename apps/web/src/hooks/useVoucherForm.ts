@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api";
-import type { VoucherTemplate } from "../api";
+import type { ReceiptOcrAnalysis, VoucherTemplate } from "../api";
 import { parseAmountToOre, oreToKronor } from "../utils/formatting";
 
 export interface VoucherLineInput {
@@ -131,6 +131,27 @@ export function useVoucherForm({ organizationId, fiscalYearId, onSuccess }: UseV
     setError(null);
   }, []);
 
+  const applyReceiptAnalysis = useCallback((analysis: ReceiptOcrAnalysis) => {
+    if (analysis.transactionDate) {
+      setDate(analysis.transactionDate);
+    }
+
+    setDescription(analysis.suggestedDescription);
+
+    if (analysis.prefillLines.length > 0) {
+      setLines(
+        analysis.prefillLines.map((line) => ({
+          accountNumber: line.accountNumber ?? "",
+          debit: line.debit > 0 ? oreToKronor(line.debit).toString() : "",
+          credit: line.credit > 0 ? oreToKronor(line.credit).toString() : "",
+          description: line.description ?? "",
+        })),
+      );
+    }
+
+    setError(null);
+  }, []);
+
   const reset = useCallback(() => {
     setDate(new Date().toISOString().slice(0, 10));
     setDescription("");
@@ -167,6 +188,7 @@ export function useVoucherForm({ organizationId, fiscalYearId, onSuccess }: UseV
     submit,
     reset,
     loadTemplate,
+    applyReceiptAnalysis,
     isPending: createMutation.isPending,
   };
 }
