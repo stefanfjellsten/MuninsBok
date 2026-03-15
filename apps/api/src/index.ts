@@ -9,6 +9,7 @@ import { prisma } from "@muninsbok/db";
 import { buildApp } from "./app.js";
 import { createRepositories } from "./repositories.js";
 import { DocumentStorage } from "./services/document-storage.js";
+import { TesseractReceiptOcrService } from "./services/receipt-ocr.js";
 
 // ------ Environment validation ------
 const requiredEnv = ["DATABASE_URL"] as const;
@@ -38,12 +39,14 @@ if (isProd && !process.env["JWT_SECRET"] && !process.env["API_KEY"]) {
 // ------ Build app ------
 const repos = createRepositories(prisma);
 const documentStorage = new DocumentStorage();
+const receiptOcr = new TesseractReceiptOcrService();
 
 const apiKey = process.env["API_KEY"];
 const jwtSecret = process.env["JWT_SECRET"];
 const fastify = await buildApp({
   repos,
   documentStorage,
+  receiptOcr,
   corsOrigin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
   ...(apiKey != null && { apiKey }),
   ...(jwtSecret != null && { jwtSecret }),
