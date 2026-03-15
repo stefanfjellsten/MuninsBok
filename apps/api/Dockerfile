@@ -39,6 +39,7 @@ RUN npm install -g pnpm@8.15.0
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV DB_MIGRATION_MODE=deploy
 
 # Copy built files and dependencies
 COPY --from=builder /app/pnpm-workspace.yaml ./
@@ -71,4 +72,4 @@ HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=15s \
   CMD wget -qO- http://127.0.0.1:3000/health || exit 1
 
 # Run migrations and start server
-CMD ["sh", "-c", "(npx prisma migrate deploy --config packages/db/prisma.config.ts --schema packages/db/prisma/schema.prisma || npx prisma db push --accept-data-loss --config packages/db/prisma.config.ts --schema packages/db/prisma/schema.prisma) && node apps/api/dist/index.js"]
+CMD ["sh", "-ec", "MODE=\"${DB_MIGRATION_MODE:-deploy}\"; SCHEMA='packages/db/prisma/schema.prisma'; CONFIG='packages/db/prisma.config.ts'; echo \"DB migration mode: ${MODE}\"; case \"$MODE\" in deploy) npx prisma migrate deploy --config \"$CONFIG\" --schema \"$SCHEMA\" ;; fallback) npx prisma migrate deploy --config \"$CONFIG\" --schema \"$SCHEMA\" || npx prisma db push --accept-data-loss --config \"$CONFIG\" --schema \"$SCHEMA\" ;; push) npx prisma db push --accept-data-loss --config \"$CONFIG\" --schema \"$SCHEMA\" ;; skip) echo 'Skipping DB migration step' ;; *) echo \"Invalid DB_MIGRATION_MODE: $MODE (allowed: deploy, fallback, push, skip)\" >&2; exit 1 ;; esac; exec node apps/api/dist/index.js"]
