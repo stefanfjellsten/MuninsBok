@@ -35,6 +35,7 @@ RUN pnpm --filter @muninsbok/api build
 FROM node:24-alpine AS runner
 
 RUN npm install -g pnpm@8.15.0
+RUN apk add --no-cache poppler-utils
 
 WORKDIR /app
 
