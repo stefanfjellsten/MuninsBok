@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type DocumentMeta, type ReceiptOcrAnalysis } from "../api";
+import { ApiError, api, type DocumentMeta, type ReceiptOcrAnalysis } from "../api";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"];
 const OCR_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
@@ -19,6 +19,13 @@ function formatOreAmount(ore: number | undefined): string {
 
 function isOcrSupportedDocument(doc: DocumentMeta): boolean {
   return OCR_ALLOWED_TYPES.includes(doc.mimeType);
+}
+
+function getOcrErrorMessage(error: Error): string {
+  if (error instanceof ApiError && error.code === "OCR_PDF_DISABLED") {
+    return "PDF-OCR ar avstangt pa servern. Behorig admin kan aktivera OCR_ENABLE_PDF=true i API-miljon.";
+  }
+  return error.message;
 }
 
 interface DocumentSectionProps {
@@ -72,7 +79,7 @@ export function DocumentSection({ organizationId, voucherId }: DocumentSectionPr
       setOcrError(null);
     },
     onError: (error: Error) => {
-      setOcrError(error.message);
+      setOcrError(getOcrErrorMessage(error));
     },
     onSettled: () => {
       setActiveOcrDocumentId(null);
