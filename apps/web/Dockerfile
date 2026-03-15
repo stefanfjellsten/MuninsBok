@@ -1,7 +1,7 @@
 # Build stage
-FROM node:25-alpine AS builder
+FROM node:24-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN npm install -g pnpm@8.15.0
 
 WORKDIR /app
 
@@ -18,6 +18,9 @@ COPY tsconfig.json ./
 COPY packages/core ./packages/core
 COPY apps/web ./apps/web
 
+# Re-link workspace bins after full source copy
+RUN pnpm install --frozen-lockfile
+
 # Build core first (web depends on it)
 RUN pnpm --filter @muninsbok/core build
 RUN pnpm --filter @muninsbok/web build
@@ -30,9 +33,6 @@ COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
 # Copy nginx config
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Run as non-root user
-USER nginx
 
 EXPOSE 80
 
