@@ -1,15 +1,17 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildTestApp, type MockRepos } from "../test/helpers.js";
 
 describe("Document routes", () => {
   let app: FastifyInstance;
   let repos: MockRepos;
+  let receiptOcr: { analyze: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     const ctx = await buildTestApp();
     app = ctx.app;
     repos = ctx.repos;
+    receiptOcr = ctx.receiptOcr as { analyze: ReturnType<typeof vi.fn> };
   });
 
   const orgId = "org-1";
@@ -77,6 +79,62 @@ describe("Document routes", () => {
       expect(res.statusCode).toBe(200);
       expect(res.headers["content-type"]).toBe("application/pdf");
       expect(res.headers["content-disposition"]).toContain("kvitto.pdf");
+    });
+  });
+
+  describe("POST /:orgId/receipt-ocr/analyze", () => {
+    it("returns parsed OCR analysis for a temporary upload", async () => {
+      const boundary = "----muninsbok-ocr";
+      const payload =
+        `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="file"; filename="kvitto.jpg"\r\n` +
+        `Content-Type: image/jpeg\r\n\r\n` +
+        `fake-image-data\r\n` +
+        `--${boundary}--\r\n`;
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/receipt-ocr/analyze`,
+        headers: {
+          "content-type": `multipart/form-data; boundary=${boundary}`,
+        },
+        payload,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(receiptOcr.analyze).toHaveBeenCalledOnce();
+      expect(res.json().data.merchantName).toBe("ICA Nara");
+    });
+  });
+
+  describe("POST /:orgId/documents/:documentId/receipt-ocr", () => {
+    it("returns 404 when the stored document does not exist", async () => {
+      repos.documents.findById.mockResolvedValue(null);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/documents/nonexistent/receipt-ocr`,
+      });
+
+      expect(res.statusCode).toBe(404);
+      expect(receiptOcr.analyze).not.toHaveBeenCalled();
+    });
+
+    it("analyzes an already uploaded document", async () => {
+      repos.documents.findById.mockResolvedValue({
+        ...sampleDoc,
+        filename: "kvitto.jpg",
+        mimeType: "image/jpeg",
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/documents/d1/receipt-ocr`,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(receiptOcr.analyze).toHaveBeenCalledOnce();
+      expect(res.json().data.totalAmountOre).toBe(12345);
     });
   });
 
