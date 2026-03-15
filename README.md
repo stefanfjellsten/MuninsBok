@@ -26,6 +26,7 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 - Rättelseverifikat (BFL 5:5)
 - Löpnumrering med luckkontroll (BFL 5:6)
 - Dokumenthantering (bifoga underlag till verifikat)
+- OCR/kvitto-tolkning för bildkvitton (JPG, PNG, WebP) med förslag för datum, beskrivning och belopp vid nytt verifikat
 - Sökfunktion och paginering för verifikat
 
 ### Rapporter
@@ -140,7 +141,6 @@ Se [docs/production.md](docs/production.md) för fullständig driftsättningsgui
 
 ## Framtida utveckling
 - Bankkoppling
-- OCR/kvitto-tolkning
 
 ---
 
@@ -209,6 +209,8 @@ pnpm dev
 
 Frontend: http://localhost:5173  
 API: http://localhost:3000
+
+OCR i denna version fungerar for bildkvitton (JPG, PNG, WebP). PDF och HEIC kan fortfarande bifogas som dokument, men OCR-tolkning ar inte aktiverad for de formaten an.
 
 ### Kör tester
 
