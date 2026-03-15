@@ -234,6 +234,23 @@ Kör hela stacken med Docker Compose:
 docker compose up --build
 ```
 
+### Docker felsökning
+
+Om API-containern fastnar vid databasmigrering kan du styra beteendet med miljövariabeln `DB_MIGRATION_MODE`:
+
+- `deploy` - kör endast `prisma migrate deploy` (strikt, rekommenderas i produktion)
+- `fallback` - försöker `migrate deploy`, faller tillbaka till `db push --accept-data-loss` vid fel (praktiskt lokalt)
+- `push` - kör alltid `db push --accept-data-loss`
+- `skip` - hoppar över migrering helt
+
+Exempel:
+
+```bash
+DB_MIGRATION_MODE=deploy docker compose up --build
+```
+
+Standard i `docker-compose.yml` är `fallback` om variabeln inte är satt.
+
 ### Produktion
 
 Se [docs/production.md](docs/production.md) för:
