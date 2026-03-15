@@ -1,14 +1,26 @@
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useOrganization } from "../context/OrganizationContext";
 import { defined } from "../utils/assert";
 import { useVoucherForm } from "../hooks/useVoucherForm";
 import { api } from "../api";
 import { formatAmount } from "../utils/formatting";
 
+const OCR_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function formatOreAmount(ore: number | undefined): string {
+  if (ore == null) return "-";
+  return `${formatAmount(ore / 100)} kr`;
+}
+
 export function VoucherCreate() {
   const { organization, fiscalYear } = useOrganization();
   const navigate = useNavigate();
+  const receiptFileInputRef = useRef<HTMLInputElement>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [receiptNotice, setReceiptNotice] = useState<string | null>(null);
 
   const orgId = defined(organization).id;
 
@@ -30,6 +42,7 @@ export function VoucherCreate() {
     canSubmit,
     submit,
     loadTemplate,
+    applyReceiptAnalysis,
     isPending,
   } = useVoucherForm({
     organizationId: orgId,
@@ -52,9 +65,34 @@ export function VoucherCreate() {
   const accounts = accountsData?.data ?? [];
   const templates = templatesData?.data ?? [];
 
+  const receiptMutation = useMutation({
+    mutationFn: (file: File) => api.analyzeReceipt(orgId, file),
+    onSuccess: () => {
+      setReceiptError(null);
+      setReceiptNotice("Kvittot ar tolkat. Kontrollera OCR-forslaget innan du bokfor.");
+    },
+    onError: (error: Error) => {
+      setReceiptNotice(null);
+      setReceiptError(error.message);
+    },
+  });
+
+  const receiptAnalysis = receiptMutation.data?.data;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submit();
+  };
+
+  const handleReceiptAnalyze = () => {
+    if (!receiptFile) {
+      setReceiptError("Valj en kvittobild i JPG-, PNG- eller WebP-format for OCR.");
+      return;
+    }
+
+    setReceiptNotice(null);
+    setReceiptError(null);
+    receiptMutation.mutate(receiptFile);
   };
 
   return (
@@ -84,6 +122,131 @@ export function VoucherCreate() {
       </div>
 
       {error && <div className="error">{error}</div>}
+
+      <section className="info-box mb-2">
+        <div className="flex justify-between items-center gap-2" style={{ flexWrap: "wrap" }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Kvitto-tolkning (OCR)</h3>
+            <p className="text-muted" style={{ margin: "0.35rem 0 0" }}>
+              Ladda upp en kvittobild for att fa forslag pa datum, beskrivning och belopp.
+            </p>
+          </div>
+          <div className="flex gap-1" style={{ flexWrap: "wrap" }}>
+            <input
+              ref={receiptFileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                if (file && !OCR_ALLOWED_TYPES.includes(file.type)) {
+                  setReceiptFile(null);
+                  setReceiptNotice(null);
+                  setReceiptError("OCR stodjer just nu bara JPG, PNG och WebP.");
+                  return;
+                }
+
+                setReceiptFile(file);
+                setReceiptNotice(null);
+                setReceiptError(null);
+              }}
+              disabled={receiptMutation.isPending}
+            />
+            <button
+              type="button"
+              onClick={handleReceiptAnalyze}
+              disabled={receiptMutation.isPending}
+            >
+              {receiptMutation.isPending ? "Tolkar..." : "Tolka kvitto"}
+            </button>
+          </div>
+        </div>
+
+        {receiptFile && (
+          <p className="text-muted" style={{ marginTop: "0.75rem", marginBottom: 0 }}>
+            Vald fil: {receiptFile.name}
+          </p>
+        )}
+        {receiptNotice && <div style={{ marginTop: "0.75rem" }}>{receiptNotice}</div>}
+        {receiptError && <div className="error mt-1">{receiptError}</div>}
+
+        {receiptAnalysis && (
+          <div style={{ marginTop: "1rem" }}>
+            <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
+              <div>
+                <strong>Butik/leverantor:</strong> {receiptAnalysis.merchantName ?? "-"}
+              </div>
+              <div>
+                <strong>Datum:</strong> {receiptAnalysis.transactionDate ?? "-"}
+              </div>
+              <div>
+                <strong>Total:</strong> {formatOreAmount(receiptAnalysis.totalAmountOre)}
+              </div>
+              <div>
+                <strong>Moms:</strong> {formatOreAmount(receiptAnalysis.vatAmountOre)}
+              </div>
+              <div>
+                <strong>OCR-sakerhet:</strong> {receiptAnalysis.confidence}%
+              </div>
+            </div>
+
+            <div className="mt-1">
+              <strong>Foreslagen beskrivning:</strong> {receiptAnalysis.suggestedDescription}
+            </div>
+
+            {receiptAnalysis.warnings.length > 0 && (
+              <div className="mt-1">
+                {receiptAnalysis.warnings.map((warning) => (
+                  <div key={warning} className="text-muted">
+                    {warning}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-1 mt-1" style={{ flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  applyReceiptAnalysis(receiptAnalysis);
+                  setReceiptNotice(
+                    "OCR-forslaget ar infogat i formularet. Valj konton och kontrollera uppgifterna.",
+                  );
+                }}
+              >
+                Anvand forslaget i verifikatet
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  receiptMutation.reset();
+                  setReceiptFile(null);
+                  setReceiptError(null);
+                  setReceiptNotice(null);
+                  if (receiptFileInputRef.current) receiptFileInputRef.current.value = "";
+                }}
+              >
+                Rensa OCR-resultat
+              </button>
+            </div>
+
+            <details className="mt-1">
+              <summary>Visa utlasa text</summary>
+              <pre
+                style={{
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  marginTop: "0.75rem",
+                  fontSize: "0.9rem",
+                }}
+              >
+                {receiptAnalysis.extractedText}
+              </pre>
+            </details>
+          </div>
+        )}
+      </section>
 
       <form onSubmit={handleSubmit}>
         <div className="flex gap-2 mb-2">
