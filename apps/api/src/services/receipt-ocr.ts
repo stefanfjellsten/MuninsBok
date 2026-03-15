@@ -1,14 +1,21 @@
 import type { ReceiptOcrAnalysis, ReceiptOcrPrefillLine } from "@muninsbok/core/api-types";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import { createWorker } from "tesseract.js";
 import { AppError } from "../utils/app-error.js";
 
 const OCR_SUPPORTED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const PDF_MIME_TYPE = "application/pdf";
 const TOTAL_LINE_PATTERN = /\b(summa|total|totalt|att betala|belopp att betala|sum to pay)\b/i;
 const VAT_LINE_PATTERN = /\b(moms|vat|tax)\b/i;
 const DATE_LINE_PATTERN = /\b(datum|date)\b/i;
 const CURRENCY_PATTERN = /\b(sek|kr|eur|usd)\b/i;
 const MERCHANT_BLOCKLIST =
   /\b(kvitto|receipt|summa|moms|vat|org\.?nr|telefon|tel|bankgiro|plusgiro|momsspec|att betala|datum|tid|kassa|kort|visa|mastercard)\b/i;
+const execFileAsync = promisify(execFile);
 
 export interface ReceiptOcrInput {
   buffer: Uint8Array;
@@ -179,8 +186,58 @@ function buildPrefillLines(
   ];
 }
 
-export function supportsReceiptOcrMimeType(mimeType: string): boolean {
-  return OCR_SUPPORTED_MIME_TYPES.has(mimeType);
+function parseFlag(value: string | undefined): boolean {
+  if (!value) return false;
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+}
+
+export function isPdfOcrEnabled(): boolean {
+  return parseFlag(process.env["OCR_ENABLE_PDF"]);
+}
+
+export function supportsReceiptOcrMimeType(
+  mimeType: string,
+  options?: { pdfEnabled?: boolean },
+): boolean {
+  if (OCR_SUPPORTED_MIME_TYPES.has(mimeType)) return true;
+  const pdfEnabled = options?.pdfEnabled ?? isPdfOcrEnabled();
+  return mimeType === PDF_MIME_TYPE && pdfEnabled;
+}
+
+async function convertPdfFirstPageToPng(pdfBuffer: Uint8Array): Promise<Uint8Array> {
+  const tempDir = await mkdtemp(join(tmpdir(), "muninsbok-ocr-pdf-"));
+  const inputPath = join(tempDir, "input.pdf");
+  const outputPrefix = join(tempDir, "page-1");
+  const outputPath = `${outputPrefix}.png`;
+  const converterBin = process.env["OCR_PDF_CONVERTER_BIN"] ?? "pdftoppm";
+  const timeoutRaw = Number.parseInt(process.env["OCR_PDF_CONVERTER_TIMEOUT_MS"] ?? "20000", 10);
+  const timeoutMs = Number.isFinite(timeoutRaw) && timeoutRaw > 0 ? timeoutRaw : 20000;
+
+  try {
+    await writeFile(inputPath, pdfBuffer);
+
+    await execFileAsync(converterBin, ["-png", "-f", "1", "-singlefile", inputPath, outputPrefix], {
+      timeout: timeoutMs,
+    });
+
+    return await readFile(outputPath);
+  } catch (error) {
+    const maybeErrno = error as NodeJS.ErrnoException;
+    if (maybeErrno.code === "ENOENT") {
+      throw new AppError(
+        500,
+        "OCR_PDF_CONVERTER_NOT_FOUND",
+        "PDF-konverterare saknas. Installera pdftoppm eller satt OCR_PDF_CONVERTER_BIN.",
+      );
+    }
+
+    throw AppError.badRequest(
+      "Kunde inte konvertera PDF till bild for OCR. Kontrollera PDF-filen.",
+      "OCR_PDF_CONVERSION_FAILED",
+    );
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 }
 
 export function parseReceiptText(input: ParseReceiptTextInput): ReceiptOcrAnalysis {
@@ -250,12 +307,26 @@ export function parseReceiptText(input: ParseReceiptTextInput): ReceiptOcrAnalys
 
 export class TesseractReceiptOcrService implements IReceiptOcrService {
   async analyze(input: ReceiptOcrInput): Promise<ReceiptOcrAnalysis> {
-    if (!supportsReceiptOcrMimeType(input.mimeType)) {
+    const pdfEnabled = isPdfOcrEnabled();
+
+    if (input.mimeType === PDF_MIME_TYPE && !pdfEnabled) {
       throw AppError.badRequest(
-        "OCR stods just nu endast for JPG, PNG och WebP-bilder",
+        "PDF-OCR ar avstangt. Satt OCR_ENABLE_PDF=true for att aktivera lokal PDF-konvertering.",
+        "OCR_PDF_DISABLED",
+      );
+    }
+
+    if (!supportsReceiptOcrMimeType(input.mimeType, { pdfEnabled })) {
+      throw AppError.badRequest(
+        "OCR stods just nu for JPG, PNG, WebP och (valfritt) PDF",
         "OCR_UNSUPPORTED_MIME",
       );
     }
+
+    const imageBuffer =
+      input.mimeType === PDF_MIME_TYPE
+        ? await convertPdfFirstPageToPng(input.buffer)
+        : input.buffer;
 
     const langPath = process.env["OCR_LANG_PATH"];
     const worker = await createWorker(
@@ -269,7 +340,7 @@ export class TesseractReceiptOcrService implements IReceiptOcrService {
     );
 
     try {
-      const result = await worker.recognize(Buffer.from(input.buffer));
+      const result = await worker.recognize(Buffer.from(imageBuffer));
       return parseReceiptText({
         sourceFilename: input.filename,
         mimeType: input.mimeType,
