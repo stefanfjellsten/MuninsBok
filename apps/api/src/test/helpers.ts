@@ -21,6 +21,10 @@ import type {
   IApprovalStepRepository,
   ICustomerRepository,
   IInvoiceRepository,
+  IBankConnectionRepository,
+  IBankTransactionRepository,
+  IBankSyncRunRepository,
+  IBankWebhookEventRepository,
 } from "@muninsbok/core/types";
 import type { IReceiptOcrService, ReceiptOcrInput } from "../services/receipt-ocr.js";
 
@@ -194,6 +198,54 @@ export function createMockInvoiceRepo(): MockedRepo<IInvoiceRepository> {
   } as MockedRepo<IInvoiceRepository>;
 }
 
+export function createMockBankConnectionRepo(): MockedRepo<IBankConnectionRepository> {
+  return {
+    findByOrganization: vi.fn().mockResolvedValue([]),
+    findById: vi.fn(),
+    findByExternalConnectionId: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateStatus: vi.fn(),
+    delete: vi.fn(),
+  } as MockedRepo<IBankConnectionRepository>;
+}
+
+export function createMockBankTransactionRepo(): MockedRepo<IBankTransactionRepository> {
+  return {
+    findById: vi.fn(),
+    findByConnectionPaginated: vi.fn().mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    }),
+    findUnmatchedByOrganization: vi.fn().mockResolvedValue([]),
+    upsertMany: vi.fn(),
+    updateMatch: vi.fn(),
+    deleteByConnection: vi.fn().mockResolvedValue(0),
+  } as MockedRepo<IBankTransactionRepository>;
+}
+
+export function createMockBankSyncRunRepo(): MockedRepo<IBankSyncRunRepository> {
+  return {
+    findById: vi.fn(),
+    findLatestByConnection: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    markRunning: vi.fn(),
+    complete: vi.fn(),
+  } as MockedRepo<IBankSyncRunRepository>;
+}
+
+export function createMockBankWebhookEventRepo(): MockedRepo<IBankWebhookEventRepository> {
+  return {
+    findById: vi.fn(),
+    findByProviderEventId: vi.fn(),
+    listRecentByOrganization: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+  } as MockedRepo<IBankWebhookEventRepository>;
+}
+
 interface MockPrismaModel {
   findUnique: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
@@ -229,6 +281,10 @@ export interface MockRepos {
   approvalSteps: MockedRepo<IApprovalStepRepository>;
   customers: MockedRepo<ICustomerRepository>;
   invoices: MockedRepo<IInvoiceRepository>;
+  bankConnections: MockedRepo<IBankConnectionRepository>;
+  bankTransactions: MockedRepo<IBankTransactionRepository>;
+  bankSyncRuns: MockedRepo<IBankSyncRunRepository>;
+  bankWebhookEvents: MockedRepo<IBankWebhookEventRepository>;
   prisma: MockPrisma;
 }
 
@@ -317,6 +373,10 @@ export function createMockRepos(): MockRepos {
     approvalSteps: createMockApprovalStepRepo(),
     customers: createMockCustomerRepo(),
     invoices: createMockInvoiceRepo(),
+    bankConnections: createMockBankConnectionRepo(),
+    bankTransactions: createMockBankTransactionRepo(),
+    bankSyncRuns: createMockBankSyncRunRepo(),
+    bankWebhookEvents: createMockBankWebhookEventRepo(),
     prisma,
   };
 }
