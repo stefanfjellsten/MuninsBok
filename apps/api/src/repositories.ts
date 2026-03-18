@@ -16,6 +16,10 @@ import type {
   IApprovalStepRepository,
   ICustomerRepository,
   IInvoiceRepository,
+  IBankConnectionRepository,
+  IBankTransactionRepository,
+  IBankSyncRunRepository,
+  IBankWebhookEventRepository,
 } from "@muninsbok/core/types";
 import {
   type PrismaClient,
@@ -32,6 +36,10 @@ import {
   ApprovalStepRepository,
   CustomerRepository,
   InvoiceRepository,
+  BankConnectionRepository,
+  BankTransactionRepository,
+  BankSyncRunRepository,
+  BankWebhookEventRepository,
 } from "@muninsbok/db";
 
 export interface Repositories {
@@ -48,6 +56,10 @@ export interface Repositories {
   readonly approvalSteps: IApprovalStepRepository;
   readonly customers: ICustomerRepository;
   readonly invoices: IInvoiceRepository;
+  readonly bankConnections: IBankConnectionRepository;
+  readonly bankTransactions: IBankTransactionRepository;
+  readonly bankSyncRuns: IBankSyncRunRepository;
+  readonly bankWebhookEvents: IBankWebhookEventRepository;
   readonly prisma: PrismaClient;
 }
 
@@ -67,6 +79,10 @@ export function createRepositories(prisma: PrismaClient): Repositories {
     approvalSteps: new ApprovalStepRepository(prisma),
     customers: new CustomerRepository(prisma),
     invoices: new InvoiceRepository(prisma),
+    bankConnections: new BankConnectionRepository(prisma),
+    bankTransactions: new BankTransactionRepository(prisma),
+    bankSyncRuns: new BankSyncRunRepository(prisma),
+    bankWebhookEvents: new BankWebhookEventRepository(prisma),
     prisma,
   };
 }
