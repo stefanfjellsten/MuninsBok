@@ -24,6 +24,15 @@ import type {
   Invoice as CoreInvoice,
   InvoiceLine as CoreInvoiceLine,
   InvoiceStatus as CoreInvoiceStatus,
+  BankConnection as CoreBankConnection,
+  BankConnectionStatus as CoreBankConnectionStatus,
+  BankTransaction as CoreBankTransaction,
+  BankTransactionMatchStatus as CoreBankTransactionMatchStatus,
+  BankSyncRun as CoreBankSyncRun,
+  BankSyncRunStatus as CoreBankSyncRunStatus,
+  BankSyncTrigger as CoreBankSyncTrigger,
+  BankWebhookEvent as CoreBankWebhookEvent,
+  BankWebhookEventStatus as CoreBankWebhookEventStatus,
 } from "@muninsbok/core/types";
 
 /**
@@ -348,6 +357,7 @@ export function toInvoiceLine(line: Prisma.InvoiceLineGetPayload<{}>): CoreInvoi
 /**
  * Map Prisma Invoice (with lines) to Core Invoice
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const invoiceInclude = { lines: true } as const;
 
 export function toInvoice(
@@ -374,5 +384,107 @@ export function toInvoice(
     lines: inv.lines.map(toInvoiceLine),
     createdAt: inv.createdAt,
     updatedAt: inv.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma BankConnection to Core BankConnection
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Prisma GetPayload generic
+export function toBankConnection(conn: Prisma.BankConnectionGetPayload<{}>): CoreBankConnection {
+  return {
+    id: conn.id,
+    organizationId: conn.organizationId,
+    provider: conn.provider,
+    externalConnectionId: conn.externalConnectionId,
+    ...(conn.displayName != null && { displayName: conn.displayName }),
+    ...(conn.accountName != null && { accountName: conn.accountName }),
+    ...(conn.accountIban != null && { accountIban: conn.accountIban }),
+    ...(conn.accountLast4 != null && { accountLast4: conn.accountLast4 }),
+    currency: conn.currency,
+    status: conn.status as CoreBankConnectionStatus,
+    ...(conn.authExpiresAt != null && { authExpiresAt: conn.authExpiresAt }),
+    ...(conn.lastSyncedAt != null && { lastSyncedAt: conn.lastSyncedAt }),
+    ...(conn.lastErrorCode != null && { lastErrorCode: conn.lastErrorCode }),
+    ...(conn.lastErrorMessage != null && { lastErrorMessage: conn.lastErrorMessage }),
+    ...(conn.metadata != null && { metadata: conn.metadata }),
+    createdAt: conn.createdAt,
+    updatedAt: conn.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma BankTransaction to Core BankTransaction
+ */
+export function toBankTransaction(
+  tx: Prisma.BankTransactionGetPayload<object>,
+): CoreBankTransaction {
+  return {
+    id: tx.id,
+    organizationId: tx.organizationId,
+    connectionId: tx.connectionId,
+    providerTransactionId: tx.providerTransactionId,
+    bookedAt: tx.bookedAt,
+    ...(tx.valueDate != null && { valueDate: tx.valueDate }),
+    description: tx.description,
+    amountOre: tx.amountOre,
+    currency: tx.currency,
+    ...(tx.reference != null && { reference: tx.reference }),
+    ...(tx.counterpartyName != null && { counterpartyName: tx.counterpartyName }),
+    matchStatus: tx.matchStatus as CoreBankTransactionMatchStatus,
+    ...(tx.matchedVoucherId != null && { matchedVoucherId: tx.matchedVoucherId }),
+    ...(tx.matchConfidence != null && { matchConfidence: tx.matchConfidence }),
+    ...(tx.matchNote != null && { matchNote: tx.matchNote }),
+    ...(tx.rawData != null && { rawData: tx.rawData }),
+    createdAt: tx.createdAt,
+    updatedAt: tx.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma BankSyncRun to Core BankSyncRun
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- Prisma GetPayload generic
+export function toBankSyncRun(run: Prisma.BankSyncRunGetPayload<{}>): CoreBankSyncRun {
+  return {
+    id: run.id,
+    organizationId: run.organizationId,
+    connectionId: run.connectionId,
+    trigger: run.trigger as CoreBankSyncTrigger,
+    status: run.status as CoreBankSyncRunStatus,
+    ...(run.externalRunId != null && { externalRunId: run.externalRunId }),
+    startedAt: run.startedAt,
+    ...(run.completedAt != null && { completedAt: run.completedAt }),
+    importedCount: run.importedCount,
+    updatedCount: run.updatedCount,
+    failedCount: run.failedCount,
+    ...(run.errorCode != null && { errorCode: run.errorCode }),
+    ...(run.errorMessage != null && { errorMessage: run.errorMessage }),
+    createdAt: run.createdAt,
+    updatedAt: run.updatedAt,
+  };
+}
+
+/**
+ * Map Prisma BankWebhookEvent to Core BankWebhookEvent
+ */
+export function toBankWebhookEvent(
+  evt: Prisma.BankWebhookEventGetPayload<object>,
+): CoreBankWebhookEvent {
+  return {
+    id: evt.id,
+    organizationId: evt.organizationId,
+    ...(evt.connectionId != null && { connectionId: evt.connectionId }),
+    provider: evt.provider,
+    providerEventId: evt.providerEventId,
+    eventType: evt.eventType,
+    status: evt.status as CoreBankWebhookEventStatus,
+    signatureValidated: evt.signatureValidated,
+    payload: evt.payload,
+    receivedAt: evt.receivedAt,
+    ...(evt.processedAt != null && { processedAt: evt.processedAt }),
+    ...(evt.errorMessage != null && { errorMessage: evt.errorMessage }),
+    createdAt: evt.createdAt,
+    updatedAt: evt.updatedAt,
   };
 }
