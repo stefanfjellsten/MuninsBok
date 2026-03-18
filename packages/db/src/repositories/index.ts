@@ -11,3 +11,7 @@ export { ApprovalRuleRepository } from "./approval-rule.repository.js";
 export { ApprovalStepRepository } from "./approval-step.repository.js";
 export { CustomerRepository } from "./customer.repository.js";
 export { InvoiceRepository } from "./invoice.repository.js";
+export { BankConnectionRepository } from "./bank-connection.repository.js";
+export { BankTransactionRepository } from "./bank-transaction.repository.js";
+export { BankSyncRunRepository } from "./bank-sync-run.repository.js";
+export { BankWebhookEventRepository } from "./bank-webhook-event.repository.js";
