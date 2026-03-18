@@ -39,6 +39,25 @@ import type {
 } from "./customer.js";
 import type { Invoice, CreateInvoiceInput, UpdateInvoiceInput, InvoiceError } from "./invoice.js";
 import type {
+  BankConnection,
+  CreateBankConnectionInput,
+  UpdateBankConnectionInput,
+  UpdateBankConnectionStatusInput,
+  BankConnectionError,
+  BankTransaction,
+  UpsertBankTransactionInput,
+  BankTransactionMatchStatus,
+  BankTransactionMatchUpdateInput,
+  BankTransactionError,
+  BankSyncRun,
+  CreateBankSyncRunInput,
+  CompleteBankSyncRunInput,
+  BankWebhookEvent,
+  CreateBankWebhookEventInput,
+  UpdateBankWebhookEventInput,
+  BankWebhookEventError,
+} from "./bank.js";
+import type {
   User,
   CreateUserInput,
   UserError,
@@ -312,4 +331,100 @@ export interface IInvoiceRepository {
     extra?: { paidDate?: Date; sentAt?: Date; voucherId?: string },
   ): Promise<Result<Invoice, InvoiceError>>;
   delete(id: string, organizationId: string): Promise<boolean>;
+}
+
+// ── Bank Connection ────────────────────────────────────────
+
+export interface IBankConnectionRepository {
+  findByOrganization(organizationId: string): Promise<BankConnection[]>;
+  findById(id: string, organizationId: string): Promise<BankConnection | null>;
+  findByExternalConnectionId(
+    organizationId: string,
+    provider: string,
+    externalConnectionId: string,
+  ): Promise<BankConnection | null>;
+  create(
+    organizationId: string,
+    input: CreateBankConnectionInput,
+  ): Promise<Result<BankConnection, BankConnectionError>>;
+  update(
+    id: string,
+    organizationId: string,
+    input: UpdateBankConnectionInput,
+  ): Promise<Result<BankConnection, BankConnectionError>>;
+  updateStatus(
+    id: string,
+    organizationId: string,
+    input: UpdateBankConnectionStatusInput,
+  ): Promise<BankConnection | null>;
+  delete(id: string, organizationId: string): Promise<boolean>;
+}
+
+// ── Bank Transaction ───────────────────────────────────────
+
+export interface IBankTransactionRepository {
+  findById(id: string, organizationId: string): Promise<BankTransaction | null>;
+  findByConnectionPaginated(
+    connectionId: string,
+    organizationId: string,
+    options: PaginatedQuery & {
+      fromDate?: Date;
+      toDate?: Date;
+      matchStatus?: BankTransactionMatchStatus;
+    },
+  ): Promise<PaginatedResult<BankTransaction>>;
+  findUnmatchedByOrganization(organizationId: string, limit: number): Promise<BankTransaction[]>;
+  upsertMany(
+    organizationId: string,
+    connectionId: string,
+    transactions: readonly UpsertBankTransactionInput[],
+  ): Promise<Result<{ created: number; updated: number }, BankTransactionError>>;
+  updateMatch(
+    id: string,
+    organizationId: string,
+    input: BankTransactionMatchUpdateInput,
+  ): Promise<BankTransaction | null>;
+  deleteByConnection(connectionId: string, organizationId: string): Promise<number>;
+}
+
+// ── Bank Sync Run ──────────────────────────────────────────
+
+export interface IBankSyncRunRepository {
+  findById(id: string, organizationId: string): Promise<BankSyncRun | null>;
+  findLatestByConnection(
+    connectionId: string,
+    organizationId: string,
+    limit: number,
+  ): Promise<BankSyncRun[]>;
+  create(
+    organizationId: string,
+    connectionId: string,
+    input: CreateBankSyncRunInput,
+  ): Promise<BankSyncRun>;
+  markRunning(id: string, organizationId: string): Promise<BankSyncRun | null>;
+  complete(
+    id: string,
+    organizationId: string,
+    input: CompleteBankSyncRunInput,
+  ): Promise<BankSyncRun | null>;
+}
+
+// ── Bank Webhook Event ─────────────────────────────────────
+
+export interface IBankWebhookEventRepository {
+  findById(id: string, organizationId: string): Promise<BankWebhookEvent | null>;
+  findByProviderEventId(
+    organizationId: string,
+    provider: string,
+    providerEventId: string,
+  ): Promise<BankWebhookEvent | null>;
+  listRecentByOrganization(organizationId: string, limit: number): Promise<BankWebhookEvent[]>;
+  create(
+    input: CreateBankWebhookEventInput,
+  ): Promise<Result<BankWebhookEvent, BankWebhookEventError>>;
+  update(
+    id: string,
+    organizationId: string,
+    input: UpdateBankWebhookEventInput,
+  ): Promise<BankWebhookEvent | null>;
 }
