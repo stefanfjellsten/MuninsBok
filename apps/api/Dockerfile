@@ -1,5 +1,5 @@
 # Build stage
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 
 RUN npm install -g pnpm@8.15.0
 
@@ -32,7 +32,7 @@ RUN pnpm --filter @muninsbok/db build
 RUN pnpm --filter @muninsbok/api build
 
 # Production stage
-FROM node:24-alpine AS runner
+FROM node:25-alpine AS runner
 
 RUN npm install -g pnpm@8.15.0
 RUN apk add --no-cache poppler-utils
