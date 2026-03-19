@@ -10,6 +10,7 @@ import { buildApp } from "./app.js";
 import { createRepositories } from "./repositories.js";
 import { DocumentStorage } from "./services/document-storage.js";
 import { TesseractReceiptOcrService } from "./services/receipt-ocr.js";
+import { createBankAdapterFromEnv } from "./services/bank-adapter.sandbox.js";
 
 // ------ Environment validation ------
 const requiredEnv = ["DATABASE_URL"] as const;
@@ -40,6 +41,7 @@ if (isProd && !process.env["JWT_SECRET"] && !process.env["API_KEY"]) {
 const repos = createRepositories(prisma);
 const documentStorage = new DocumentStorage();
 const receiptOcr = new TesseractReceiptOcrService();
+const bankAdapter = createBankAdapterFromEnv();
 
 const apiKey = process.env["API_KEY"];
 const jwtSecret = process.env["JWT_SECRET"];
@@ -47,6 +49,7 @@ const fastify = await buildApp({
   repos,
   documentStorage,
   receiptOcr,
+  bankAdapter,
   corsOrigin: process.env["CORS_ORIGIN"] ?? "http://localhost:5173",
   ...(apiKey != null && { apiKey }),
   ...(jwtSecret != null && { jwtSecret }),
