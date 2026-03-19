@@ -140,7 +140,7 @@ Se [docs/production.md](docs/production.md) för fullständig driftsättningsgui
 ---
 
 ## Framtida utveckling
-- Bankkoppling (Sprint 1 klar: domänkontrakt, datamodell och repository-grund)
+- Bankkoppling (Sprint 2 påbörjad: adapter-abstraktion, sandbox-provider och idempotensverifiering)
 
 ---
 
