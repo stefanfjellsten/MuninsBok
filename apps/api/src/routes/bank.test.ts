@@ -342,4 +342,152 @@ describe("Bank routes", () => {
       expect(res.statusCode).toBe(400);
     });
   });
+
+  // ── POST/GET /webhooks ─────────────────────────────────────────────────────
+
+  describe("POST /:orgId/bank/webhooks", () => {
+    const webhookEvent = {
+      id: "whe-1",
+      organizationId: orgId,
+      connectionId,
+      provider: "sandbox",
+      providerEventId: "evt-1",
+      eventType: "transactions.updated",
+      status: "RECEIVED" as const,
+      signatureValidated: true,
+      payload: { changed: 2 },
+      receivedAt: new Date("2026-03-20T10:00:00.000Z"),
+      createdAt: new Date("2026-03-20T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-20T10:00:00.000Z"),
+    };
+
+    it("stores webhook and triggers webhook sync for transaction events", async () => {
+      repos.bankWebhookEvents.create.mockResolvedValue({ ok: true, value: webhookEvent });
+      repos.bankWebhookEvents.update.mockResolvedValue({
+        ...webhookEvent,
+        status: "PROCESSED",
+      });
+
+      repos.bankConnections.findById.mockResolvedValue(mockConnection);
+      repos.bankSyncRuns.create.mockResolvedValue(mockSyncRun);
+      bankAdapter.fetchTransactions.mockResolvedValue({ transactions: [] });
+      repos.bankSyncRuns.complete.mockResolvedValue({
+        ...mockSyncRun,
+        status: "SUCCEEDED" as const,
+      });
+      repos.bankConnections.update.mockResolvedValue({ ok: true, value: mockConnection });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/webhooks`,
+        payload: {
+          provider: "sandbox",
+          providerEventId: "evt-1",
+          eventType: "transactions.updated",
+          connectionId,
+          signatureValidated: true,
+          payload: { changed: 2 },
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data.eventId).toBe("whe-1");
+      expect(body.data.processed).toBe(true);
+      expect(repos.bankWebhookEvents.update).toHaveBeenCalledWith(
+        "whe-1",
+        orgId,
+        expect.objectContaining({ status: "PROCESSED" }),
+      );
+      expect(repos.bankSyncRuns.create).toHaveBeenCalledWith(
+        orgId,
+        connectionId,
+        expect.objectContaining({ trigger: "WEBHOOK" }),
+      );
+    });
+
+    it("is idempotent for duplicate provider events", async () => {
+      repos.bankWebhookEvents.create.mockResolvedValue({
+        ok: false,
+        error: {
+          code: "DUPLICATE_PROVIDER_EVENT",
+          message: "Webhook-event finns redan registrerat",
+        },
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/webhooks`,
+        payload: {
+          provider: "sandbox",
+          providerEventId: "evt-dup",
+          eventType: "transactions.updated",
+          connectionId,
+          payload: { changed: 0 },
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data.duplicate).toBe(true);
+      expect(repos.bankSyncRuns.create).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when webhook payload is invalid", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/webhooks`,
+        payload: {
+          provider: "sandbox",
+          eventType: "transactions.updated",
+          payload: { changed: 0 },
+        },
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe("GET /:orgId/bank/webhooks", () => {
+    it("returns recent webhook events with default limit", async () => {
+      repos.bankWebhookEvents.listRecentByOrganization.mockResolvedValue([
+        {
+          id: "whe-1",
+          organizationId: orgId,
+          connectionId,
+          provider: "sandbox",
+          providerEventId: "evt-1",
+          eventType: "transactions.updated",
+          status: "PROCESSED",
+          signatureValidated: true,
+          payload: { changed: 2 },
+          receivedAt: new Date("2026-03-20T10:00:00.000Z"),
+          createdAt: new Date("2026-03-20T10:00:00.000Z"),
+          updatedAt: new Date("2026-03-20T10:00:00.000Z"),
+        },
+      ]);
+
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/organizations/${orgId}/bank/webhooks`,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data).toHaveLength(1);
+      expect(repos.bankWebhookEvents.listRecentByOrganization).toHaveBeenCalledWith(orgId, 20);
+    });
+
+    it("respects explicit limit query", async () => {
+      repos.bankWebhookEvents.listRecentByOrganization.mockResolvedValue([]);
+
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/organizations/${orgId}/bank/webhooks?limit=5`,
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(repos.bankWebhookEvents.listRecentByOrganization).toHaveBeenCalledWith(orgId, 5);
+    });
+  });
 });
