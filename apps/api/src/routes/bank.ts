@@ -7,6 +7,8 @@ import {
   bankConnectInitSchema,
   bankConnectCallbackSchema,
   bankSyncBodySchema,
+  bankWebhookCreateSchema,
+  bankWebhookListQuerySchema,
 } from "../schemas/index.js";
 
 export async function bankRoutes(fastify: FastifyInstance) {
@@ -124,5 +126,96 @@ export async function bankRoutes(fastify: FastifyInstance) {
         matchStatus: q.matchStatus as BankTransactionMatchStatus,
       }),
     });
+  });
+
+  // POST /:orgId/bank/webhooks — ingest provider webhook event
+  fastify.post<{ Params: { orgId: string } }>("/:orgId/bank/webhooks", async (request) => {
+    const body = parseBody(bankWebhookCreateSchema, request.body);
+    const orgId = request.params.orgId;
+
+    const created = await fastify.repos.bankWebhookEvents.create({
+      organizationId: orgId,
+      ...(body.connectionId != null && { connectionId: body.connectionId }),
+      provider: body.provider,
+      providerEventId: body.providerEventId,
+      eventType: body.eventType,
+      ...(body.signatureValidated != null && {
+        signatureValidated: body.signatureValidated,
+      }),
+      payload: body.payload,
+      ...(body.receivedAt != null && { receivedAt: new Date(body.receivedAt) }),
+    });
+
+    if (!created.ok) {
+      if (created.error.code === "DUPLICATE_PROVIDER_EVENT") {
+        return {
+          data: {
+            duplicate: true,
+            provider: body.provider,
+            providerEventId: body.providerEventId,
+          },
+        };
+      }
+      throw AppError.badRequest(created.error.message, created.error.code);
+    }
+
+    const connectionId = body.connectionId;
+    const shouldSync = connectionId != null && body.eventType.startsWith("transactions.");
+
+    if (!shouldSync) {
+      return { data: { eventId: created.value.id, processed: false } };
+    }
+
+    try {
+      const syncResult = await bankSync.syncConnection({
+        organizationId: orgId,
+        connectionId,
+        trigger: "WEBHOOK",
+      });
+
+      await fastify.repos.bankWebhookEvents.update(created.value.id, orgId, {
+        status: "PROCESSED",
+        processedAt: new Date(),
+      });
+
+      return {
+        data: {
+          eventId: created.value.id,
+          processed: true,
+          sync: syncResult,
+        },
+      };
+    } catch (error) {
+      await fastify.repos.bankWebhookEvents.update(created.value.id, orgId, {
+        status: "FAILED",
+        processedAt: new Date(),
+        errorMessage: error instanceof Error ? error.message : "Okänt fel",
+      });
+
+      return {
+        data: {
+          eventId: created.value.id,
+          processed: true,
+          sync: {
+            status: "FAILED",
+          },
+        },
+      };
+    }
+  });
+
+  // GET /:orgId/bank/webhooks — list recent webhook events
+  fastify.get<{
+    Params: { orgId: string };
+    Querystring: { limit?: string | number };
+  }>("/:orgId/bank/webhooks", async (request) => {
+    const query = parseBody(bankWebhookListQuerySchema, request.query ?? {});
+    const limit = query.limit ?? 20;
+    const events = await fastify.repos.bankWebhookEvents.listRecentByOrganization(
+      request.params.orgId,
+      limit,
+    );
+
+    return { data: events };
   });
 }
