@@ -1,4 +1,4 @@
-import { type Prisma, type PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, type PrismaClient } from "../generated/prisma/client.js";
 import type {
   IBankConnectionRepository,
   BankConnection,
@@ -8,7 +8,7 @@ import type {
   BankConnectionError,
   Result,
 } from "@muninsbok/core/types";
-import { ok } from "@muninsbok/core/types";
+import { err, ok } from "@muninsbok/core/types";
 import { toBankConnection } from "../mappers.js";
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -48,23 +48,33 @@ export class BankConnectionRepository implements IBankConnectionRepository {
     organizationId: string,
     input: CreateBankConnectionInput,
   ): Promise<Result<BankConnection, BankConnectionError>> {
-    const created = await this.prisma.bankConnection.create({
-      data: {
-        organizationId,
-        provider: input.provider,
-        externalConnectionId: input.externalConnectionId,
-        displayName: input.displayName ?? null,
-        accountName: input.accountName ?? null,
-        accountIban: input.accountIban ?? null,
-        accountLast4: input.accountLast4 ?? null,
-        currency: input.currency ?? "SEK",
-        status: input.status ?? "AUTH_REQUIRED",
-        authExpiresAt: input.authExpiresAt ?? null,
-        ...(input.metadata !== undefined && { metadata: toJsonValue(input.metadata) }),
-      },
-    });
+    try {
+      const created = await this.prisma.bankConnection.create({
+        data: {
+          organizationId,
+          provider: input.provider,
+          externalConnectionId: input.externalConnectionId,
+          displayName: input.displayName ?? null,
+          accountName: input.accountName ?? null,
+          accountIban: input.accountIban ?? null,
+          accountLast4: input.accountLast4 ?? null,
+          currency: input.currency ?? "SEK",
+          status: input.status ?? "AUTH_REQUIRED",
+          authExpiresAt: input.authExpiresAt ?? null,
+          ...(input.metadata !== undefined && { metadata: toJsonValue(input.metadata) }),
+        },
+      });
 
-    return ok(toBankConnection(created));
+      return ok(toBankConnection(created));
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return err({
+          code: "DUPLICATE_CONNECTION",
+          message: "Bankanslutning finns redan för provider och extern anslutning",
+        });
+      }
+      throw error;
+    }
   }
 
   async update(
