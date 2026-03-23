@@ -13,6 +13,8 @@ import type { IDocumentStorage } from "@muninsbok/core/types";
 import { AppError } from "./utils/app-error.js";
 import type { IReceiptOcrService } from "./services/receipt-ocr.js";
 import type { IAggregatorBankAdapter } from "./services/bank-adapter.js";
+import type { IBankSyncService } from "./services/bank-sync.js";
+import { createBankSyncService } from "./services/bank-sync.js";
 import requestLogging from "./plugins/request-logging.js";
 import auditLogging from "./plugins/audit-logging.js";
 import jwtAuth from "./plugins/jwt-auth.js";
@@ -29,6 +31,7 @@ import { documentRoutes } from "./routes/documents.js";
 import { dashboardRoutes } from "./routes/dashboard.js";
 import { searchRoutes } from "./routes/search.js";
 import { csvImportRoutes } from "./routes/csv-import.js";
+import { bankRoutes } from "./routes/bank.js";
 import { authRoutes } from "./routes/auth.js";
 import { approvalRoutes } from "./routes/approval.js";
 import { invoiceRoutes } from "./routes/invoices.js";
@@ -185,6 +188,12 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   fastify.decorate("receiptOcr", options.receiptOcr);
   fastify.decorate("bankAdapter", options.bankAdapter);
 
+  const bankSync = createBankSyncService({
+    repos: options.repos,
+    adapter: options.bankAdapter,
+  });
+  fastify.decorate("bankSync", bankSync);
+
   // Auth routes (register, login, refresh, me)
   if (options.jwtSecret) {
     await fastify.register(authRoutes, { prefix: "/api/auth" });
@@ -237,6 +246,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       if (options.jwtSecret) {
         await instance.register(approvalRoutes);
       }
+      await instance.register(bankRoutes);
     },
     { prefix: "/api/organizations" },
   );
@@ -281,5 +291,6 @@ declare module "fastify" {
     documentStorage: IDocumentStorage;
     receiptOcr: IReceiptOcrService;
     bankAdapter: IAggregatorBankAdapter;
+    bankSync: IBankSyncService;
   }
 }
