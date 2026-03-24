@@ -93,6 +93,21 @@ BANK_WEBHOOK_HMAC_SECRET=byt-till-lang-slumpmassig-hemlighet
 BANK_WEBHOOK_SANDBOX_HMAC_SECRET=annan-hemlighet-for-sandbox
 ```
 
+### Operativ checklista: rotation av webhook-hemligheter
+
+Nar ni roterar hemligheter i produktion, anvand denna ordning for att undvika avbrott:
+
+1. Skapa ny hemlighet i webhook-provider/aggregator.
+2. Uppdatera servermiljon med ny variabel (`BANK_WEBHOOK_<PROVIDER>_HMAC_SECRET` rekommenderas).
+3. Rulla ut API-instansen och verifiera att inkommande webhooks fortsatt returnerar 2xx.
+4. Overvaka loggar for koderna `BANK_WEBHOOK_SIGNATURE_MISSING` och `BANK_WEBHOOK_SIGNATURE_INVALID`.
+5. Nar trafiken ar stabil, ta bort gammal hemlighet hos provider och i deployment-hemligheter.
+
+Tips:
+
+- Behall global fallback (`BANK_WEBHOOK_HMAC_SECRET`) endast om ni verkligen behover den.
+- Providerspecifika hemligheter ar tydligare och minskar blast radius vid hemlighetslage.
+
 ---
 
 ## TLS / HTTPS med nginx
