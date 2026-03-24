@@ -24,6 +24,9 @@ const VoucherDetail = lazy(() =>
 const AccountList = lazy(() =>
   import("./pages/AccountList").then((m) => ({ default: m.AccountList })),
 );
+const BankConnections = lazy(() =>
+  import("./pages/BankConnections").then((m) => ({ default: m.BankConnections })),
+);
 const TrialBalance = lazy(() =>
   import("./pages/TrialBalance").then((m) => ({ default: m.TrialBalance })),
 );
@@ -203,6 +206,7 @@ function AppContent() {
               <NavLink to="/templates">{t("nav.templates")}</NavLink>
               <NavLink to="/budgets">{t("nav.budgets")}</NavLink>
               <NavLink to="/accounts">{t("nav.accounts")}</NavLink>
+              <NavLink to="/bank">Bank</NavLink>
             </span>
             <span className={styles.navSeparator} aria-hidden="true" />
             <div className={styles.dropdown} ref={reportsRef}>
@@ -318,6 +322,7 @@ function AppContent() {
                 <Route path="/budgets/:budgetId/edit" element={<BudgetForm />} />
                 <Route path="/budgets/:budgetId/vs-actual" element={<BudgetVsActual />} />
                 <Route path="/accounts" element={<AccountList />} />
+                <Route path="/bank" element={<BankConnections />} />
                 <Route path="/reports/trial-balance" element={<TrialBalance />} />
                 <Route path="/reports/income-statement" element={<IncomeStatement />} />
                 <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
