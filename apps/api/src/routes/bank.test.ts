@@ -1,10 +1,12 @@
+import { createHmac } from "node:crypto";
 import { describe, it, expect, beforeEach } from "vitest";
-import type { FastifyInstance } from "fastify";
 import { buildTestApp, type MockRepos } from "../test/helpers.js";
 import type { IAggregatorBankAdapter } from "../services/bank-adapter.js";
+import { BankAdapterError } from "../services/bank-adapter.js";
 
 describe("Bank routes", () => {
-  let app: FastifyInstance;
+  type AppInstance = Awaited<ReturnType<typeof buildTestApp>>["app"];
+  let app: AppInstance;
   let repos: MockRepos;
   let bankAdapter: {
     [K in keyof IAggregatorBankAdapter]: IAggregatorBankAdapter[K] extends (
@@ -346,6 +348,16 @@ describe("Bank routes", () => {
   // ── POST/GET /webhooks ─────────────────────────────────────────────────────
 
   describe("POST /:orgId/bank/webhooks", () => {
+    const oldWebhookSecret = process.env["BANK_WEBHOOK_HMAC_SECRET"];
+
+    beforeEach(() => {
+      if (oldWebhookSecret == null) {
+        delete process.env["BANK_WEBHOOK_HMAC_SECRET"];
+      } else {
+        process.env["BANK_WEBHOOK_HMAC_SECRET"] = oldWebhookSecret;
+      }
+    });
+
     const webhookEvent = {
       id: "whe-1",
       organizationId: orgId,
@@ -446,6 +458,85 @@ describe("Bank routes", () => {
 
       expect(res.statusCode).toBe(400);
     });
+
+    it("validates webhook HMAC signature when secret is configured", async () => {
+      process.env["BANK_WEBHOOK_HMAC_SECRET"] = "super-secret";
+      const payload = { changed: 2 };
+      const signature = createHmac("sha256", "super-secret")
+        .update(JSON.stringify(payload))
+        .digest("hex");
+
+      repos.bankWebhookEvents.create.mockResolvedValue({ ok: true, value: webhookEvent });
+      repos.bankWebhookEvents.update.mockResolvedValue({
+        ...webhookEvent,
+        status: "PROCESSED",
+      });
+      repos.bankConnections.findById.mockResolvedValue(mockConnection);
+      repos.bankSyncRuns.create.mockResolvedValue(mockSyncRun);
+      bankAdapter.fetchTransactions.mockResolvedValue({ transactions: [] });
+      repos.bankSyncRuns.complete.mockResolvedValue({
+        ...mockSyncRun,
+        status: "SUCCEEDED" as const,
+      });
+      repos.bankConnections.update.mockResolvedValue({ ok: true, value: mockConnection });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/webhooks`,
+        headers: { "x-webhook-signature": `sha256=${signature}` },
+        payload: {
+          provider: "sandbox",
+          providerEventId: "evt-signed",
+          eventType: "transactions.updated",
+          connectionId,
+          payload,
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(repos.bankWebhookEvents.create).toHaveBeenCalledWith(
+        expect.objectContaining({ signatureValidated: true }),
+      );
+    });
+
+    it("returns 400 when webhook signature is missing and secret is configured", async () => {
+      process.env["BANK_WEBHOOK_HMAC_SECRET"] = "super-secret";
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/webhooks`,
+        payload: {
+          provider: "sandbox",
+          providerEventId: "evt-missing-sig",
+          eventType: "transactions.updated",
+          connectionId,
+          payload: { changed: 2 },
+        },
+      });
+
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).code).toBe("BANK_WEBHOOK_SIGNATURE_MISSING");
+    });
+
+    it("returns 400 when webhook signature is invalid and secret is configured", async () => {
+      process.env["BANK_WEBHOOK_HMAC_SECRET"] = "super-secret";
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/webhooks`,
+        headers: { "x-webhook-signature": "sha256=deadbeef" },
+        payload: {
+          provider: "sandbox",
+          providerEventId: "evt-bad-sig",
+          eventType: "transactions.updated",
+          connectionId,
+          payload: { changed: 2 },
+        },
+      });
+
+      expect(res.statusCode).toBe(400);
+      expect(JSON.parse(res.body).code).toBe("BANK_WEBHOOK_SIGNATURE_INVALID");
+    });
   });
 
   describe("GET /:orgId/bank/webhooks", () => {
@@ -488,6 +579,156 @@ describe("Bank routes", () => {
 
       expect(res.statusCode).toBe(200);
       expect(repos.bankWebhookEvents.listRecentByOrganization).toHaveBeenCalledWith(orgId, 5);
+    });
+  });
+
+  // ── GET /:connectionId/sync-runs ───────────────────────────────────────────
+
+  describe("GET /:orgId/bank/:connectionId/sync-runs", () => {
+    const mockRun = {
+      id: "run-1",
+      organizationId: orgId,
+      connectionId,
+      trigger: "MANUAL" as const,
+      status: "SUCCEEDED" as const,
+      startedAt: new Date("2026-03-20T09:00:00.000Z"),
+      completedAt: new Date("2026-03-20T09:00:05.000Z"),
+      importedCount: 3,
+      updatedCount: 0,
+      failedCount: 0,
+      createdAt: new Date("2026-03-20"),
+      updatedAt: new Date("2026-03-20"),
+    };
+
+    it("returns recent sync runs with default limit", async () => {
+      repos.bankConnections.findById.mockResolvedValue(mockConnection);
+      repos.bankSyncRuns.findLatestByConnection.mockResolvedValue([mockRun]);
+
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/organizations/${orgId}/bank/${connectionId}/sync-runs`,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0].id).toBe("run-1");
+      expect(repos.bankSyncRuns.findLatestByConnection).toHaveBeenCalledWith(
+        connectionId,
+        orgId,
+        10,
+      );
+    });
+
+    it("respects explicit limit query", async () => {
+      repos.bankConnections.findById.mockResolvedValue(mockConnection);
+      repos.bankSyncRuns.findLatestByConnection.mockResolvedValue([]);
+
+      await app.inject({
+        method: "GET",
+        url: `/api/organizations/${orgId}/bank/${connectionId}/sync-runs?limit=5`,
+      });
+
+      expect(repos.bankSyncRuns.findLatestByConnection).toHaveBeenCalledWith(
+        connectionId,
+        orgId,
+        5,
+      );
+    });
+
+    it("returns 404 when connection not found", async () => {
+      repos.bankConnections.findById.mockResolvedValue(null);
+
+      const res = await app.inject({
+        method: "GET",
+        url: `/api/organizations/${orgId}/bank/${connectionId}/sync-runs`,
+      });
+
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
+  // ── POST /:connectionId/auth/refresh ───────────────────────────────────────
+
+  describe("POST /:orgId/bank/:connectionId/auth/refresh", () => {
+    it("refreshes token and returns updated expiry", async () => {
+      repos.bankConnections.findById.mockResolvedValue(mockConnection);
+      bankAdapter.refreshAccessToken.mockResolvedValue({
+        accessToken: "sbx_at_new",
+        refreshToken: "sbx_rt_new",
+        expiresAt: new Date("2027-01-01T00:00:00.000Z"),
+        tokenType: "Bearer",
+        scope: ["transactions"],
+      });
+      repos.bankConnections.update.mockResolvedValue({
+        ok: true,
+        value: { ...mockConnection, authExpiresAt: new Date("2027-01-01T00:00:00.000Z") },
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/${connectionId}/auth/refresh`,
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data.status).toBe("CONNECTED");
+      expect(body.data.connectionId).toBe(connectionId);
+      expect(repos.bankConnections.update).toHaveBeenCalledWith(
+        connectionId,
+        orgId,
+        expect.objectContaining({ status: "CONNECTED" }),
+      );
+    });
+
+    it("returns 404 when connection not found", async () => {
+      repos.bankConnections.findById.mockResolvedValue(null);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/${connectionId}/auth/refresh`,
+      });
+
+      expect(res.statusCode).toBe(404);
+    });
+
+    it("returns 400 when no refresh token in metadata", async () => {
+      repos.bankConnections.findById.mockResolvedValue({
+        ...mockConnection,
+        metadata: {
+          auth: {
+            accessToken: "sbx_at_test",
+            expiresAt: "2026-12-31T23:59:59Z",
+            tokenType: "Bearer",
+          },
+        },
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/${connectionId}/auth/refresh`,
+      });
+
+      expect(res.statusCode).toBe(400);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe("BANK_REFRESH_TOKEN_MISSING");
+    });
+
+    it("returns 401 and marks connection AUTH_REQUIRED when refresh token is expired", async () => {
+      repos.bankConnections.findById.mockResolvedValue(mockConnection);
+      bankAdapter.refreshAccessToken.mockRejectedValue(
+        new BankAdapterError("ADAPTER_UNAUTHORIZED", "Ogiltig refresh token"),
+      );
+      repos.bankConnections.updateStatus.mockResolvedValue({ ok: true, value: mockConnection });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/${connectionId}/auth/refresh`,
+      });
+
+      expect(res.statusCode).toBe(401);
+      const body = JSON.parse(res.body);
+      expect(body.code).toBe("BANK_AUTH_REQUIRED");
     });
   });
 });
