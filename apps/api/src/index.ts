@@ -100,6 +100,42 @@ try {
     24 * 60 * 60 * 1000,
   );
   cleanupInterval.unref();
+
+  // Schedule periodic bank sync for all CONNECTED connections across all organisations
+  const bankSyncIntervalMs = parseInt(
+    process.env["BANK_SYNC_INTERVAL_MS"] ?? String(6 * 60 * 60 * 1000),
+    10,
+  );
+  const bankSyncInterval = setInterval(async () => {
+    try {
+      const orgs = await repos.organizations.findAll();
+      for (const org of orgs) {
+        const connections = await repos.bankConnections.findByOrganization(org.id);
+        const connected = connections.filter((c) => c.status === "CONNECTED");
+        for (const connection of connected) {
+          try {
+            const result = await fastify.bankSync.syncConnection({
+              organizationId: org.id,
+              connectionId: connection.id,
+              trigger: "SCHEDULED",
+            });
+            fastify.log.info(
+              { orgId: org.id, connectionId: connection.id, ...result },
+              "Scheduled bank sync completed",
+            );
+          } catch (err) {
+            fastify.log.error(
+              { orgId: org.id, connectionId: connection.id, err },
+              "Scheduled bank sync failed for connection",
+            );
+          }
+        }
+      }
+    } catch (err) {
+      fastify.log.error(err, "Scheduled bank sync sweep failed");
+    }
+  }, bankSyncIntervalMs);
+  bankSyncInterval.unref();
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
