@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AppError } from "../utils/app-error.js";
 import { BankAdapterError } from "./bank-adapter.js";
 import { BankSyncService } from "./bank-sync.js";
@@ -165,9 +165,110 @@ describe("BankSyncService", () => {
     );
   });
 
+  it("retries temporary refresh token failures before sync continues", async () => {
+    const repos = createMockRepos();
+    const adapter = createMockBankAdapter();
+    const retrySleep = vi.fn().mockResolvedValue(undefined);
+
+    repos.bankConnections.findById.mockResolvedValue(
+      validConnection({
+        metadata: {
+          auth: {
+            accessToken: "sbx_at_expired",
+            refreshToken: "sbx_rt_abc",
+            expiresAt: "2020-01-01T00:00:00.000Z",
+            tokenType: "Bearer",
+          },
+        },
+      }),
+    );
+    repos.bankSyncRuns.create.mockResolvedValue({ id: "run-refresh-retry" });
+    repos.bankSyncRuns.complete.mockResolvedValue({ id: "run-refresh-retry" });
+    repos.bankConnections.update.mockResolvedValue({ ok: true, value: validConnection() });
+    repos.bankTransactions.upsertMany.mockResolvedValue({
+      ok: true,
+      value: { created: 0, updated: 0 },
+    });
+
+    adapter.refreshAccessToken
+      .mockRejectedValueOnce(new BankAdapterError("ADAPTER_TEMPORARY", "Tillfälligt fel"))
+      .mockResolvedValueOnce({
+        accessToken: "sbx_at_new",
+        refreshToken: "sbx_rt_abc",
+        expiresAt: new Date("2026-01-03T00:00:00.000Z"),
+        tokenType: "Bearer",
+      });
+    adapter.fetchTransactions.mockResolvedValue({ transactions: [] });
+
+    const service = new BankSyncService({
+      repos: repos as unknown as Pick<
+        Repositories,
+        "bankConnections" | "bankTransactions" | "bankSyncRuns" | "bankWebhookEvents"
+      >,
+      adapter: adapter as unknown as IAggregatorBankAdapter,
+      sleep: retrySleep,
+      random: () => 0,
+      retryConfig: { maxRetries: 2, initialDelayMs: 25, maxDelayMs: 25, jitterFactor: 0 },
+    });
+
+    await service.syncConnection({ organizationId: "org-1", connectionId: "bc-1" });
+
+    expect(adapter.refreshAccessToken).toHaveBeenCalledTimes(2);
+    expect(retrySleep).toHaveBeenCalledWith(25);
+  });
+
+  it("retries temporary fetch failures and completes sync when a later attempt succeeds", async () => {
+    const repos = createMockRepos();
+    const adapter = createMockBankAdapter();
+    const retrySleep = vi.fn().mockResolvedValue(undefined);
+
+    repos.bankConnections.findById.mockResolvedValue(validConnection());
+    repos.bankSyncRuns.create.mockResolvedValue({ id: "run-fetch-retry" });
+    repos.bankSyncRuns.complete.mockResolvedValue({ id: "run-fetch-retry" });
+    repos.bankConnections.update.mockResolvedValue({ ok: true, value: validConnection() });
+
+    adapter.fetchTransactions
+      .mockRejectedValueOnce(new BankAdapterError("ADAPTER_TEMPORARY", "Tillfälligt fel"))
+      .mockResolvedValueOnce({
+        transactions: [
+          {
+            externalTransactionId: "tx-retry-1",
+            bookedAt: new Date("2026-01-01T00:00:00.000Z"),
+            description: "Retryad transaktion",
+            amountOre: -5000,
+            currency: "SEK",
+          },
+        ],
+      });
+
+    repos.bankTransactions.upsertMany.mockResolvedValue({
+      ok: true,
+      value: { created: 1, updated: 0 },
+    });
+
+    const service = new BankSyncService({
+      repos: repos as unknown as Pick<
+        Repositories,
+        "bankConnections" | "bankTransactions" | "bankSyncRuns" | "bankWebhookEvents"
+      >,
+      adapter: adapter as unknown as IAggregatorBankAdapter,
+      sleep: retrySleep,
+      random: () => 0,
+      retryConfig: { maxRetries: 2, initialDelayMs: 25, maxDelayMs: 25, jitterFactor: 0 },
+    });
+
+    const result = await service.syncConnection({ organizationId: "org-1", connectionId: "bc-1" });
+
+    expect(result.syncRunId).toBe("run-fetch-retry");
+    expect(result.created).toBe(1);
+    expect(adapter.fetchTransactions).toHaveBeenCalledTimes(2);
+    expect(retrySleep).toHaveBeenCalledWith(25);
+  });
+
   it("marks sync as failed and maps adapter error", async () => {
     const repos = createMockRepos();
     const adapter = createMockBankAdapter();
+    const retrySleep = vi.fn().mockResolvedValue(undefined);
 
     repos.bankConnections.findById.mockResolvedValue(validConnection());
     repos.bankSyncRuns.create.mockResolvedValue({ id: "run-3" });
@@ -184,6 +285,9 @@ describe("BankSyncService", () => {
         "bankConnections" | "bankTransactions" | "bankSyncRuns" | "bankWebhookEvents"
       >,
       adapter: adapter as unknown as IAggregatorBankAdapter,
+      sleep: retrySleep,
+      random: () => 0,
+      retryConfig: { maxRetries: 2, initialDelayMs: 10, maxDelayMs: 10, jitterFactor: 0 },
     });
 
     await expect(
@@ -201,6 +305,8 @@ describe("BankSyncService", () => {
         errorCode: "ADAPTER_TEMPORARY",
       }),
     );
+    expect(adapter.fetchTransactions).toHaveBeenCalledTimes(3);
+    expect(retrySleep).toHaveBeenCalledTimes(2);
   });
 
   it("throws BANK_AUTH_MISSING when connection lacks token metadata", async () => {
