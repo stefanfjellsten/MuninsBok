@@ -4,6 +4,8 @@ import type {
   ApiResponse,
   ApprovalRuleEntity,
   ApprovalStepEntity,
+  BankConnectionEntity,
+  BankSyncRunEntity,
   CustomerEntity,
   InvoiceEntity,
   BalanceSheet,
@@ -43,6 +45,8 @@ export type {
   AccountAnalysis,
   ApprovalRuleEntity,
   ApprovalStepEntity,
+  BankConnectionEntity,
+  BankSyncRunEntity,
   CustomerEntity,
   InvoiceEntity,
   InvoiceLineEntity,
@@ -104,6 +108,20 @@ export interface AuthResponse {
 
 export interface RefreshResponse {
   data: AuthTokens;
+}
+
+export interface BankSyncConnectionResult {
+  syncRunId: string;
+  fetched: number;
+  created: number;
+  updated: number;
+  nextCursor?: string;
+}
+
+export interface BankRefreshConnectionResult {
+  connectionId: string;
+  status: "CONNECTED";
+  authExpiresAt: string;
 }
 
 /**
@@ -317,6 +335,36 @@ export const api = {
     fetchVoid(`${API_BASE}/organizations/${orgId}/accounts/${accountNumber}`, {
       method: "DELETE",
     }),
+
+  // Bank
+  getBankConnections: (orgId: string) =>
+    fetchJson<ApiResponse<BankConnectionEntity[]>>(
+      `${API_BASE}/organizations/${orgId}/bank/connections`,
+    ),
+
+  getBankSyncRuns: (orgId: string, connectionId: string, limit = 10) =>
+    fetchJson<ApiResponse<BankSyncRunEntity[]>>(
+      `${API_BASE}/organizations/${orgId}/bank/${connectionId}/sync-runs?limit=${encodeURIComponent(String(limit))}`,
+    ),
+
+  syncBankConnection: (
+    orgId: string,
+    connectionId: string,
+    data?: { fromDate?: string; toDate?: string; pageSize?: number },
+  ) =>
+    fetchJson<ApiResponse<BankSyncConnectionResult>>(
+      `${API_BASE}/organizations/${orgId}/bank/${connectionId}/sync`,
+      {
+        method: "POST",
+        body: JSON.stringify(data ?? {}),
+      },
+    ),
+
+  refreshBankConnectionAuth: (orgId: string, connectionId: string) =>
+    fetchJson<ApiResponse<BankRefreshConnectionResult>>(
+      `${API_BASE}/organizations/${orgId}/bank/${connectionId}/auth/refresh`,
+      { method: "POST" },
+    ),
 
   updateAccount: (
     orgId: string,
