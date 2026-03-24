@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import type { BankTransactionMatchStatus } from "@muninsbok/core/types";
@@ -98,7 +96,10 @@ export async function bankRoutes(fastify: FastifyInstance) {
     const connections = await fastify.repos.bankConnections.findByOrganization(
       request.params.orgId,
     );
-    const safe = connections.map(({ metadata: _metadata, ...rest }) => rest);
+    const safe = connections.map((connection: (typeof connections)[number]) => {
+      const { metadata: _metadata, ...rest } = connection;
+      return rest;
+    });
     return { data: safe };
   });
 
