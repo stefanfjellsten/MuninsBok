@@ -131,11 +131,14 @@ Applikationen är **produktionsklar** för självhostning av småföretag och f�
 - **Auktorisering**: Rollbaserad behörighet (OWNER / ADMIN / MEMBER) med org-scoped membership
 - **Input**: Zod-validering på alla API-endpoints, body-storleksgräns (1 MB), input-sanitering
 - **Transport**: Helmet-headers, CORS-konfiguration, rate limiting med skärpt gräns på auth-endpoints
+- **Webhooks**: HMAC-signaturverifiering for bank-webhooks via `x-webhook-signature` (global eller providerspecifik hemlighet)
 - **Infrastruktur**: Multi-stage Docker, non-root containers, healthchecks, log-rotation, graceful shutdown
 - **Drift**: Request-timeouts, konfigurerbar anslutningspool, strukturerad loggning, audit trail
 - **Tester**: 911+ enhetstester (inkl. React Testing Library-komponenttester) + E2E med Playwright, CI via GitHub Actions
 
 Se [docs/production.md](docs/production.md) för fullständig driftsättningsguide.
+
+Bank-webhook-signaturer i produktion konfigureras via `BANK_WEBHOOK_HMAC_SECRET` eller `BANK_WEBHOOK_<PROVIDER>_HMAC_SECRET`.
 
 ---
 
