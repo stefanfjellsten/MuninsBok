@@ -128,6 +128,26 @@ export interface BankRefreshConnectionResult {
   authExpiresAt: string;
 }
 
+export interface BankMatchCandidate {
+  voucherId: string;
+  voucherNumber: number;
+  fiscalYearId: string;
+  date: string;
+  description: string;
+  score: number;
+  reasons: string[];
+}
+
+export interface BankMatchTransactionResult {
+  transaction: BankTransactionEntity;
+  voucher: Voucher;
+}
+
+export interface BankCreateVoucherFromTransactionResult {
+  transaction: BankTransactionEntity;
+  voucher: Voucher;
+}
+
 /**
  * Structured API error with status code and optional error code
  */
@@ -392,6 +412,61 @@ export const api = {
       `${API_BASE}/organizations/${orgId}/bank/${connectionId}/transactions${qs ? `?${qs}` : ""}`,
     );
   },
+
+  getBankMatchCandidates: (orgId: string, transactionId: string, limit = 10) =>
+    fetchJson<ApiResponse<BankMatchCandidate[]>>(
+      `${API_BASE}/organizations/${orgId}/bank/transactions/${transactionId}/match-candidates?limit=${encodeURIComponent(String(limit))}`,
+    ),
+
+  matchBankTransaction: (
+    orgId: string,
+    transactionId: string,
+    data: { voucherId: string; matchConfidence?: number; matchNote?: string },
+  ) =>
+    fetchJson<ApiResponse<BankMatchTransactionResult>>(
+      `${API_BASE}/organizations/${orgId}/bank/transactions/${transactionId}/match`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    ),
+
+  unmatchBankTransaction: (orgId: string, transactionId: string) =>
+    fetchJson<ApiResponse<BankTransactionEntity>>(
+      `${API_BASE}/organizations/${orgId}/bank/transactions/${transactionId}/unmatch`,
+      {
+        method: "POST",
+      },
+    ),
+
+  confirmBankTransaction: (orgId: string, transactionId: string, data?: { matchNote?: string }) =>
+    fetchJson<ApiResponse<BankTransactionEntity>>(
+      `${API_BASE}/organizations/${orgId}/bank/transactions/${transactionId}/confirm`,
+      {
+        method: "POST",
+        body: JSON.stringify(data ?? {}),
+      },
+    ),
+
+  createVoucherFromBankTransaction: (
+    orgId: string,
+    transactionId: string,
+    data: {
+      fiscalYearId?: string;
+      bankAccountNumber: string;
+      counterAccountNumber: string;
+      description?: string;
+      matchNote?: string;
+      createdBy?: string;
+    },
+  ) =>
+    fetchJson<ApiResponse<BankCreateVoucherFromTransactionResult>>(
+      `${API_BASE}/organizations/${orgId}/bank/transactions/${transactionId}/create-voucher`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    ),
 
   updateAccount: (
     orgId: string,
