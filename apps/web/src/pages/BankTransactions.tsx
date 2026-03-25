@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useOrganization } from "../context/OrganizationContext";
 import { useToast } from "../context/ToastContext";
+import { useLocale } from "../context/LocaleContext";
 import { defined } from "../utils/assert";
 import { isBankingEnabledForOrganization } from "../utils/bank-feature-flag";
 import {
@@ -13,11 +14,11 @@ import {
   type BankTransactionMatchStatus,
 } from "../api";
 
-const MATCH_STATUS_LABELS: Record<BankTransactionMatchStatus, string> = {
-  PENDING_MATCH: "Väntar på matchning",
-  MATCHED: "Matchad",
-  CONFIRMED: "Bekräftad",
-  ERROR: "Fel",
+const MATCH_STATUS_LABELS_KEYS: Record<BankTransactionMatchStatus, string> = {
+  PENDING_MATCH: "bank.status.pendingMatch",
+  MATCHED: "bank.status.matched",
+  CONFIRMED: "bank.status.confirmed",
+  ERROR: "bank.status.error",
 };
 
 const MATCH_STATUS_COLORS: Record<BankTransactionMatchStatus, string> = {
@@ -47,6 +48,7 @@ export function BankTransactions() {
   const { connectionId } = useParams<{ connectionId: string }>();
   const { organization } = useOrganization();
   const { addToast } = useToast();
+  const { t } = useLocale();
   const queryClient = useQueryClient();
   const orgId = defined(organization).id;
   const bankingEnabled = isBankingEnabledForOrganization(orgId);
@@ -109,7 +111,7 @@ export function BankTransactions() {
       invalidateTransactions();
       setCandidatePickerTx(null);
       setSelectedCandidateId("");
-      addToast("Transaktionen matchades", "success");
+      addToast(t("bank.toast.matched"), "success");
     },
     onError: (error: Error) => {
       addToast(getErrorMessage(error), "error");
@@ -120,7 +122,7 @@ export function BankTransactions() {
     mutationFn: (transactionId: string) => api.unmatchBankTransaction(orgId, transactionId),
     onSuccess: () => {
       invalidateTransactions();
-      addToast("Matchningen togs bort", "success");
+      addToast(t("bank.toast.unmatched"), "success");
     },
     onError: (error: Error) => {
       addToast(getErrorMessage(error), "error");
@@ -131,7 +133,7 @@ export function BankTransactions() {
     mutationFn: (transactionId: string) => api.confirmBankTransaction(orgId, transactionId),
     onSuccess: () => {
       invalidateTransactions();
-      addToast("Transaktionen bekräftades", "success");
+      addToast(t("bank.toast.confirmed"), "success");
     },
     onError: (error: Error) => {
       addToast(getErrorMessage(error), "error");
@@ -152,10 +154,11 @@ export function BankTransactions() {
       }),
     onSuccess: (result) => {
       invalidateTransactions();
-      addToast(
-        `Verifikat #${result.data.voucher.number} skapades och transaktionen bekräftades`,
-        "success",
+      const toast = t("bank.toast.voucherCreated").replace(
+        "{voucherNumber}",
+        String(result.data.voucher.number),
       );
+      addToast(toast, "success");
     },
     onError: (error: Error) => {
       addToast(getErrorMessage(error), "error");
@@ -190,20 +193,22 @@ export function BankTransactions() {
   if (!bankingEnabled) {
     return (
       <div className="card">
-        <h2>Transaktioner</h2>
-        <p className="text-muted">
-          Bankfunktioner är inte aktiverade för den valda organisationen.
-        </p>
+        <h2>{t("bank.transactions")}</h2>
+        <p className="text-muted">{t("bank.disabledMessage")}</p>
       </div>
     );
   }
 
   if (query.isLoading) {
-    return <div className="loading">Laddar transaktioner...</div>;
+    return <div className="loading">{t("bank.loadingTransactions")}</div>;
   }
 
   if (query.error) {
-    return <div className="error">Fel vid hämtning: {(query.error as Error).message}</div>;
+    return (
+      <div className="error">
+        {t("bank.errorFetching")} {(query.error as Error).message}
+      </div>
+    );
   }
 
   return (
@@ -212,12 +217,12 @@ export function BankTransactions() {
         <div>
           <div style={{ marginBottom: "0.5rem" }}>
             <Link to="/bank" style={{ fontSize: "0.875rem" }}>
-              ← Bankkopplingar
+              {t("bank.backToConnections")}
             </Link>
           </div>
-          <h2>Transaktioner</h2>
+          <h2>{t("bank.transactions")}</h2>
           <p className="text-muted" style={{ marginTop: "0.35rem" }}>
-            {total} transaktioner totalt
+            {t("bank.totalTransactions").replace("{total}", String(total))}
           </p>
         </div>
       </div>
@@ -226,25 +231,25 @@ export function BankTransactions() {
       <div className="card" style={{ padding: "1rem", marginBottom: "1rem" }}>
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", alignItems: "flex-end" }}>
           <label style={labelStyle}>
-            Matchningsstatus
+            {t("bank.filterStatus")}
             <select
               value={matchStatus}
               onChange={handleFilterChange(setMatchStatus)}
               style={inputStyle}
             >
-              <option value="">Alla</option>
-              {(Object.entries(MATCH_STATUS_LABELS) as [BankTransactionMatchStatus, string][]).map(
-                ([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ),
-              )}
+              <option value="">{t("bank.filterAll")}</option>
+              {(
+                Object.entries(MATCH_STATUS_LABELS_KEYS) as [BankTransactionMatchStatus, string][]
+              ).map(([value, key]) => (
+                <option key={value} value={value}>
+                  {t(key as never)}
+                </option>
+              ))}
             </select>
           </label>
 
           <label style={labelStyle}>
-            Från datum
+            {t("bank.filterFromDate")}
             <input
               type="date"
               value={fromDate}
@@ -254,7 +259,7 @@ export function BankTransactions() {
           </label>
 
           <label style={labelStyle}>
-            Till datum
+            {t("bank.filterToDate")}
             <input
               type="date"
               value={toDate}
@@ -273,7 +278,7 @@ export function BankTransactions() {
                 border: "1px solid #d1d5db",
               }}
             >
-              Rensa filter
+              {t("bank.clearFilters")}
             </button>
           )}
         </div>
@@ -281,7 +286,7 @@ export function BankTransactions() {
 
       {transactions.length === 0 ? (
         <div className="card">
-          <p className="text-muted">Inga transaktioner hittades med valda filter.</p>
+          <p className="text-muted">{t("bank.noTransactionsFound")}</p>
         </div>
       ) : (
         <>
@@ -289,11 +294,11 @@ export function BankTransactions() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                  <th style={thStyle}>Datum</th>
-                  <th style={thStyle}>Beskrivning</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Belopp</th>
-                  <th style={thStyle}>Matchningsstatus</th>
-                  <th style={thStyle}>Åtgärder</th>
+                  <th style={thStyle}>{t("bank.table.date")}</th>
+                  <th style={thStyle}>{t("bank.table.description")}</th>
+                  <th style={{ ...thStyle, textAlign: "right" }}>{t("bank.table.amount")}</th>
+                  <th style={thStyle}>{t("bank.table.status")}</th>
+                  <th style={thStyle}>{t("bank.table.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -349,7 +354,10 @@ export function BankTransactions() {
                             background: MATCH_STATUS_COLORS[tx.matchStatus] ?? "#f3f4f6",
                           }}
                         >
-                          {MATCH_STATUS_LABELS[tx.matchStatus] ?? tx.matchStatus}
+                          {t(
+                            (MATCH_STATUS_LABELS_KEYS[tx.matchStatus] ??
+                              "bank.status.error") as never,
+                          )}
                         </span>
                       </td>
                       <td style={tdStyle}>
@@ -362,7 +370,9 @@ export function BankTransactions() {
                               setSelectedCandidateId("");
                             }}
                           >
-                            {isFindingMatch ? "Laddar..." : "Välj match"}
+                            {isFindingMatch
+                              ? t("bank.action.loading")
+                              : t("bank.action.selectMatch")}
                           </button>
                           <button
                             style={smallButtonStyle}
@@ -372,7 +382,7 @@ export function BankTransactions() {
                             }
                             onClick={() => confirmMutation.mutate(tx.id)}
                           >
-                            {isConfirming ? "Bekräftar..." : "Bekräfta"}
+                            {isConfirming ? t("bank.action.confirming") : t("bank.action.confirm")}
                           </button>
                           <button
                             style={smallButtonStyle}
@@ -382,20 +392,20 @@ export function BankTransactions() {
                             }
                             onClick={() => unmatchMutation.mutate(tx.id)}
                           >
-                            {isUnmatching ? "Tar bort..." : "Avmatcha"}
+                            {isUnmatching ? t("bank.action.unmatching") : t("bank.action.unmatch")}
                           </button>
                           <button
                             style={{ ...smallButtonStyle, background: "#0f766e" }}
                             disabled={isBusy || tx.matchStatus === "CONFIRMED"}
                             onClick={() => {
                               const counterAccountNumber = window.prompt(
-                                "Motkonto (4 siffror), t.ex. 6071",
+                                t("bank.prompt.counterAccount"),
                                 "6071",
                               );
                               if (!counterAccountNumber) return;
 
                               const bankAccountNumber = window.prompt(
-                                "Bankkonto (4 siffror), t.ex. 1930",
+                                t("bank.prompt.bankAccount"),
                                 "1930",
                               );
                               if (!bankAccountNumber) return;
@@ -408,7 +418,9 @@ export function BankTransactions() {
                               });
                             }}
                           >
-                            {isCreatingVoucher ? "Skapar..." : "Skapa verifikat"}
+                            {isCreatingVoucher
+                              ? t("bank.action.creating")
+                              : t("bank.action.createVoucher")}
                           </button>
                         </div>
                       </td>
@@ -423,7 +435,7 @@ export function BankTransactions() {
             <div style={modalBackdropStyle}>
               <div className="card" style={modalCardStyle}>
                 <div className="flex-between" style={{ marginBottom: "0.75rem" }}>
-                  <h3 style={{ margin: 0 }}>Välj matchning</h3>
+                  <h3 style={{ margin: 0 }}>{t("bank.modal.title")}</h3>
                   <button
                     className="secondary"
                     onClick={() => {
@@ -431,19 +443,23 @@ export function BankTransactions() {
                       setSelectedCandidateId("");
                     }}
                   >
-                    Stäng
+                    {t("bank.modal.close")}
                   </button>
                 </div>
 
                 <p className="text-muted" style={{ marginTop: 0 }}>
-                  Transaktion: {candidatePickerTx.description} (
-                  {formatAmount(candidatePickerTx.amountOre, candidatePickerTx.currency)})
+                  {t("bank.modal.transaction")
+                    .replace("{description}", candidatePickerTx.description)
+                    .replace(
+                      "{amount}",
+                      formatAmount(candidatePickerTx.amountOre, candidatePickerTx.currency),
+                    )}
                 </p>
 
                 {matchCandidatesQuery.isLoading ? (
-                  <p className="text-muted">Hämtar matchningskandidater...</p>
+                  <p className="text-muted">{t("bank.modal.loading")}</p>
                 ) : matchCandidates.length === 0 ? (
-                  <p className="text-muted">Inga kandidater hittades för transaktionen.</p>
+                  <p className="text-muted">{t("bank.modal.noCandidates")}</p>
                 ) : (
                   <div
                     style={{
@@ -474,7 +490,9 @@ export function BankTransactions() {
                             onChange={() => setSelectedCandidateId(candidate.voucherId)}
                           />
                           <strong>
-                            Verifikat #{candidate.voucherNumber} - score {candidate.score}
+                            {t("bank.modal.candidate")
+                              .replace("{voucherNumber}", String(candidate.voucherNumber))
+                              .replace("{score}", String(candidate.score))}
                           </strong>
                         </div>
                         <div style={{ marginTop: "0.35rem", fontSize: "0.85rem" }}>
@@ -484,14 +502,17 @@ export function BankTransactions() {
                           className="text-muted"
                           style={{ fontSize: "0.8rem", marginTop: "0.35rem" }}
                         >
-                          Datum: {formatDate(candidate.date)}
+                          {t("bank.modal.date").replace("{date}", formatDate(candidate.date))}
                         </div>
                         {candidate.reasons.length > 0 && (
                           <div
                             className="text-muted"
                             style={{ fontSize: "0.8rem", marginTop: "0.35rem" }}
                           >
-                            Skäl: {candidate.reasons.join(", ")}
+                            {t("bank.modal.reasons").replace(
+                              "{reasons}",
+                              candidate.reasons.join(", "),
+                            )}
                           </div>
                         )}
                       </label>
@@ -520,7 +541,9 @@ export function BankTransactions() {
                       });
                     }}
                   >
-                    {applyMatchMutation.isPending ? "Matchar..." : "Matcha vald kandidat"}
+                    {applyMatchMutation.isPending
+                      ? t("bank.modal.applying")
+                      : t("bank.modal.apply")}
                   </button>
                 </div>
               </div>
@@ -538,17 +561,19 @@ export function BankTransactions() {
               }}
             >
               <button disabled={page <= 1} onClick={() => setPage(page - 1)} style={buttonStyle}>
-                Föregående
+                {t("bank.pagination.previous")}
               </button>
               <span style={{ fontSize: "0.875rem" }}>
-                Sida {page} av {totalPages}
+                {t("bank.pagination.page")
+                  .replace("{page}", String(page))
+                  .replace("{totalPages}", String(totalPages))}
               </span>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(page + 1)}
                 style={buttonStyle}
               >
-                Nästa
+                {t("bank.pagination.next")}
               </button>
             </div>
           )}
