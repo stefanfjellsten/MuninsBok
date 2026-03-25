@@ -4,10 +4,15 @@ import type { BankTransactionMatchStatus } from "@muninsbok/core/types";
 import { AppError } from "../utils/app-error.js";
 import { parseBody } from "../utils/parse-body.js";
 import { BankAdapterError } from "../services/bank-adapter.js";
+import { createBankTransactionMatchingService } from "../services/bank-matching.js";
 import {
   bankConnectInitSchema,
   bankConnectCallbackSchema,
+  bankMatchCandidatesQuerySchema,
   bankSyncBodySchema,
+  bankTransactionConfirmSchema,
+  bankTransactionCreateVoucherSchema,
+  bankTransactionMatchSchema,
   bankWebhookCreateSchema,
   bankWebhookListQuerySchema,
   bankSyncRunListQuerySchema,
@@ -48,6 +53,9 @@ function resolveWebhookSecret(provider: string): string | undefined {
 export async function bankRoutes(fastify: FastifyInstance) {
   const adapter = fastify.bankAdapter;
   const bankSync = fastify.bankSync;
+  const bankMatching = createBankTransactionMatchingService({
+    repos: fastify.repos,
+  });
 
   // POST /:orgId/bank/connect/init — generate OAuth authorization URL
   fastify.post<{ Params: { orgId: string } }>("/:orgId/bank/connect/init", async (request) => {
@@ -163,6 +171,82 @@ export async function bankRoutes(fastify: FastifyInstance) {
         matchStatus: q.matchStatus as BankTransactionMatchStatus,
       }),
     });
+  });
+
+  // GET /:orgId/bank/transactions/:transactionId/match-candidates — suggest vouchers to match
+  fastify.get<{
+    Params: { orgId: string; transactionId: string };
+    Querystring: { limit?: string | number };
+  }>("/:orgId/bank/transactions/:transactionId/match-candidates", async (request) => {
+    const query = parseBody(bankMatchCandidatesQuerySchema, request.query ?? {});
+    const data = await bankMatching.getMatchCandidates(
+      request.params.orgId,
+      request.params.transactionId,
+      query.limit ?? 10,
+    );
+
+    return { data };
+  });
+
+  // POST /:orgId/bank/transactions/:transactionId/match — match transaction to voucher
+  fastify.post<{
+    Params: { orgId: string; transactionId: string };
+  }>("/:orgId/bank/transactions/:transactionId/match", async (request, reply) => {
+    const body = parseBody(bankTransactionMatchSchema, request.body ?? {});
+    const data = await bankMatching.matchTransaction({
+      organizationId: request.params.orgId,
+      transactionId: request.params.transactionId,
+      voucherId: body.voucherId,
+      ...(body.matchConfidence != null && { matchConfidence: body.matchConfidence }),
+      ...(body.matchNote != null && { matchNote: body.matchNote }),
+    });
+
+    return reply.status(200).send({ data });
+  });
+
+  // POST /:orgId/bank/transactions/:transactionId/unmatch — clear voucher match
+  fastify.post<{
+    Params: { orgId: string; transactionId: string };
+  }>("/:orgId/bank/transactions/:transactionId/unmatch", async (request, reply) => {
+    const data = await bankMatching.unmatchTransaction(
+      request.params.orgId,
+      request.params.transactionId,
+    );
+
+    return reply.status(200).send({ data });
+  });
+
+  // POST /:orgId/bank/transactions/:transactionId/confirm — confirm matched transaction
+  fastify.post<{
+    Params: { orgId: string; transactionId: string };
+  }>("/:orgId/bank/transactions/:transactionId/confirm", async (request, reply) => {
+    const body = parseBody(bankTransactionConfirmSchema, request.body ?? {});
+    const data = await bankMatching.confirmTransaction(
+      request.params.orgId,
+      request.params.transactionId,
+      body.matchNote,
+    );
+
+    return reply.status(200).send({ data });
+  });
+
+  // POST /:orgId/bank/transactions/:transactionId/create-voucher — create and match voucher
+  fastify.post<{
+    Params: { orgId: string; transactionId: string };
+  }>("/:orgId/bank/transactions/:transactionId/create-voucher", async (request, reply) => {
+    const body = parseBody(bankTransactionCreateVoucherSchema, request.body ?? {});
+    const data = await bankMatching.createVoucherFromTransaction({
+      organizationId: request.params.orgId,
+      transactionId: request.params.transactionId,
+      ...(body.fiscalYearId != null && { fiscalYearId: body.fiscalYearId }),
+      bankAccountNumber: body.bankAccountNumber,
+      counterAccountNumber: body.counterAccountNumber,
+      ...(body.description != null && { description: body.description }),
+      ...(body.matchNote != null && { matchNote: body.matchNote }),
+      ...(body.createdBy != null && { createdBy: body.createdBy }),
+    });
+
+    return reply.status(201).send({ data });
   });
 
   // POST /:orgId/bank/webhooks — ingest provider webhook event
