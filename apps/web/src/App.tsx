@@ -9,6 +9,7 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import { CreateOrganizationDialog } from "./components/CreateOrganizationDialog";
 import { SearchDialog } from "./components/SearchDialog";
+import { isBankingEnabledForOrganization } from "./utils/bank-feature-flag";
 
 // Lazy-loaded page components (code-split per route)
 const Dashboard = lazy(() => import("./pages/Dashboard").then((m) => ({ default: m.Dashboard })));
@@ -128,6 +129,7 @@ function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
   const reportsRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const bankingEnabled = isBankingEnabledForOrganization(organization?.id);
 
   const isReportPage = location.pathname.startsWith("/reports/");
 
@@ -209,7 +211,7 @@ function AppContent() {
               <NavLink to="/templates">{t("nav.templates")}</NavLink>
               <NavLink to="/budgets">{t("nav.budgets")}</NavLink>
               <NavLink to="/accounts">{t("nav.accounts")}</NavLink>
-              <NavLink to="/bank">Bank</NavLink>
+              {bankingEnabled && <NavLink to="/bank">Bank</NavLink>}
             </span>
             <span className={styles.navSeparator} aria-hidden="true" />
             <div className={styles.dropdown} ref={reportsRef}>
@@ -325,8 +327,10 @@ function AppContent() {
                 <Route path="/budgets/:budgetId/edit" element={<BudgetForm />} />
                 <Route path="/budgets/:budgetId/vs-actual" element={<BudgetVsActual />} />
                 <Route path="/accounts" element={<AccountList />} />
-                <Route path="/bank" element={<BankConnections />} />
-                <Route path="/bank/:connectionId/transactions" element={<BankTransactions />} />
+                {bankingEnabled && <Route path="/bank" element={<BankConnections />} />}
+                {bankingEnabled && (
+                  <Route path="/bank/:connectionId/transactions" element={<BankTransactions />} />
+                )}
                 <Route path="/reports/trial-balance" element={<TrialBalance />} />
                 <Route path="/reports/income-statement" element={<IncomeStatement />} />
                 <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
