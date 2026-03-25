@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import { useOrganization } from "../context/OrganizationContext";
+import { useToast } from "../context/ToastContext";
 import { defined } from "../utils/assert";
-import { api, type BankTransactionEntity, type BankTransactionMatchStatus } from "../api";
+import { ApiError, api, type BankTransactionEntity, type BankTransactionMatchStatus } from "../api";
 
 const MATCH_STATUS_LABELS: Record<BankTransactionMatchStatus, string> = {
   PENDING_MATCH: "Väntar på matchning",
@@ -38,6 +39,8 @@ const PAGE_SIZE = 20;
 export function BankTransactions() {
   const { connectionId } = useParams<{ connectionId: string }>();
   const { organization } = useOrganization();
+  const { addToast } = useToast();
+  const queryClient = useQueryClient();
   const orgId = defined(organization).id;
 
   const [page, setPage] = useState(1);
@@ -71,6 +74,82 @@ export function BankTransactions() {
   const transactions: BankTransactionEntity[] = result?.data ?? [];
   const total = result?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const invalidateTransactions = () => {
+    queryClient.invalidateQueries({ queryKey: ["bank-transactions", orgId, connectionId] });
+  };
+
+  const findAndMatchMutation = useMutation({
+    mutationFn: async (tx: BankTransactionEntity) => {
+      const candidates = await api.getBankMatchCandidates(orgId, tx.id, 5);
+      const best = candidates.data[0];
+      if (!best) {
+        throw new Error("Ingen matchningskandidat hittades");
+      }
+
+      return api.matchBankTransaction(orgId, tx.id, {
+        voucherId: best.voucherId,
+        matchConfidence: best.score,
+        matchNote:
+          best.reasons.length > 0
+            ? `Automatch: ${best.reasons.join(", ")}`
+            : "Automatch utan explicita skäl",
+      });
+    },
+    onSuccess: () => {
+      invalidateTransactions();
+      addToast("Transaktionen matchades", "success");
+    },
+    onError: (error: Error) => {
+      addToast(getErrorMessage(error), "error");
+    },
+  });
+
+  const unmatchMutation = useMutation({
+    mutationFn: (transactionId: string) => api.unmatchBankTransaction(orgId, transactionId),
+    onSuccess: () => {
+      invalidateTransactions();
+      addToast("Matchningen togs bort", "success");
+    },
+    onError: (error: Error) => {
+      addToast(getErrorMessage(error), "error");
+    },
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: (transactionId: string) => api.confirmBankTransaction(orgId, transactionId),
+    onSuccess: () => {
+      invalidateTransactions();
+      addToast("Transaktionen bekräftades", "success");
+    },
+    onError: (error: Error) => {
+      addToast(getErrorMessage(error), "error");
+    },
+  });
+
+  const createVoucherMutation = useMutation({
+    mutationFn: (vars: {
+      transactionId: string;
+      bankAccountNumber: string;
+      counterAccountNumber: string;
+      description?: string;
+    }) =>
+      api.createVoucherFromBankTransaction(orgId, vars.transactionId, {
+        bankAccountNumber: vars.bankAccountNumber,
+        counterAccountNumber: vars.counterAccountNumber,
+        ...(vars.description != null && { description: vars.description }),
+      }),
+    onSuccess: (result) => {
+      invalidateTransactions();
+      addToast(
+        `Verifikat #${result.data.voucher.number} skapades och transaktionen bekräftades`,
+        "success",
+      );
+    },
+    onError: (error: Error) => {
+      addToast(getErrorMessage(error), "error");
+    },
+  });
 
   const handleFilterChange =
     (setter: (v: string) => void) =>
@@ -181,46 +260,118 @@ export function BankTransactions() {
                   <th style={thStyle}>Beskrivning</th>
                   <th style={{ ...thStyle, textAlign: "right" }}>Belopp</th>
                   <th style={thStyle}>Matchningsstatus</th>
+                  <th style={thStyle}>Åtgärder</th>
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    <td style={tdStyle}>{formatDate(tx.bookedAt)}</td>
-                    <td style={tdStyle}>
-                      <div>{tx.description}</div>
-                      {tx.counterpartyName && (
-                        <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>
-                          {tx.counterpartyName}
-                        </div>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        ...tdStyle,
-                        textAlign: "right",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      <span style={{ color: tx.amountOre < 0 ? "#dc2626" : "#16a34a" }}>
-                        {formatAmount(tx.amountOre, tx.currency)}
-                      </span>
-                    </td>
-                    <td style={tdStyle}>
-                      <span
+                {transactions.map((tx) => {
+                  const isFindingMatch =
+                    findAndMatchMutation.isPending && findAndMatchMutation.variables?.id === tx.id;
+                  const isUnmatching =
+                    unmatchMutation.isPending && unmatchMutation.variables === tx.id;
+                  const isConfirming =
+                    confirmMutation.isPending && confirmMutation.variables === tx.id;
+                  const isCreatingVoucher =
+                    createVoucherMutation.isPending &&
+                    createVoucherMutation.variables?.transactionId === tx.id;
+                  const isBusy =
+                    isFindingMatch || isUnmatching || isConfirming || isCreatingVoucher;
+
+                  return (
+                    <tr key={tx.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={tdStyle}>{formatDate(tx.bookedAt)}</td>
+                      <td style={tdStyle}>
+                        <div>{tx.description}</div>
+                        {tx.counterpartyName && (
+                          <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>
+                            {tx.counterpartyName}
+                          </div>
+                        )}
+                      </td>
+                      <td
                         style={{
-                          display: "inline-block",
-                          padding: "0.15rem 0.5rem",
-                          borderRadius: "999px",
-                          fontSize: "0.75rem",
-                          background: MATCH_STATUS_COLORS[tx.matchStatus] ?? "#f3f4f6",
+                          ...tdStyle,
+                          textAlign: "right",
+                          fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {MATCH_STATUS_LABELS[tx.matchStatus] ?? tx.matchStatus}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                        <span style={{ color: tx.amountOre < 0 ? "#dc2626" : "#16a34a" }}>
+                          {formatAmount(tx.amountOre, tx.currency)}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "0.15rem 0.5rem",
+                            borderRadius: "999px",
+                            fontSize: "0.75rem",
+                            background: MATCH_STATUS_COLORS[tx.matchStatus] ?? "#f3f4f6",
+                          }}
+                        >
+                          {MATCH_STATUS_LABELS[tx.matchStatus] ?? tx.matchStatus}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+                          <button
+                            style={smallButtonStyle}
+                            disabled={isBusy || tx.matchStatus === "CONFIRMED"}
+                            onClick={() => findAndMatchMutation.mutate(tx)}
+                          >
+                            {isFindingMatch ? "Matchar..." : "Matcha"}
+                          </button>
+                          <button
+                            style={smallButtonStyle}
+                            disabled={
+                              isBusy ||
+                              (tx.matchStatus !== "MATCHED" && tx.matchStatus !== "CONFIRMED")
+                            }
+                            onClick={() => confirmMutation.mutate(tx.id)}
+                          >
+                            {isConfirming ? "Bekräftar..." : "Bekräfta"}
+                          </button>
+                          <button
+                            style={smallButtonStyle}
+                            disabled={
+                              isBusy ||
+                              (tx.matchStatus !== "MATCHED" && tx.matchStatus !== "CONFIRMED")
+                            }
+                            onClick={() => unmatchMutation.mutate(tx.id)}
+                          >
+                            {isUnmatching ? "Tar bort..." : "Avmatcha"}
+                          </button>
+                          <button
+                            style={{ ...smallButtonStyle, background: "#0f766e" }}
+                            disabled={isBusy || tx.matchStatus === "CONFIRMED"}
+                            onClick={() => {
+                              const counterAccountNumber = window.prompt(
+                                "Motkonto (4 siffror), t.ex. 6071",
+                                "6071",
+                              );
+                              if (!counterAccountNumber) return;
+
+                              const bankAccountNumber = window.prompt(
+                                "Bankkonto (4 siffror), t.ex. 1930",
+                                "1930",
+                              );
+                              if (!bankAccountNumber) return;
+
+                              createVoucherMutation.mutate({
+                                transactionId: tx.id,
+                                bankAccountNumber,
+                                counterAccountNumber,
+                                description: `Banktransaktion: ${tx.description}`,
+                              });
+                            }}
+                          >
+                            {isCreatingVoucher ? "Skapar..." : "Skapa verifikat"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -256,6 +407,14 @@ export function BankTransactions() {
   );
 }
 
+function getErrorMessage(error: Error): string {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+
+  return "Något gick fel. Försök igen.";
+}
+
 const labelStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
@@ -277,6 +436,16 @@ const buttonStyle: React.CSSProperties = {
   color: "#fff",
   cursor: "pointer",
   fontSize: "0.875rem",
+};
+
+const smallButtonStyle: React.CSSProperties = {
+  padding: "0.25rem 0.55rem",
+  borderRadius: "4px",
+  border: "none",
+  background: "#374151",
+  color: "#fff",
+  cursor: "pointer",
+  fontSize: "0.75rem",
 };
 
 const thStyle: React.CSSProperties = {
