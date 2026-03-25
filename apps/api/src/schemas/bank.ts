@@ -35,3 +35,26 @@ export const bankWebhookListQuerySchema = z.object({
 export const bankSyncRunListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
 });
+
+export const bankMatchCandidatesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(20).optional(),
+});
+
+export const bankTransactionMatchSchema = z.object({
+  voucherId: z.string().min(1),
+  matchConfidence: z.number().int().min(0).max(100).optional(),
+  matchNote: z.string().max(500).optional(),
+});
+
+export const bankTransactionConfirmSchema = z.object({
+  matchNote: z.string().max(500).optional(),
+});
+
+export const bankTransactionCreateVoucherSchema = z.object({
+  fiscalYearId: z.string().min(1).optional(),
+  bankAccountNumber: z.string().regex(/^\d{4}$/),
+  counterAccountNumber: z.string().regex(/^\d{4}$/),
+  description: z.string().min(1).max(255).optional(),
+  matchNote: z.string().max(500).optional(),
+  createdBy: z.string().min(1).optional(),
+});
