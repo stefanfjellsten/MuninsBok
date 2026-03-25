@@ -50,11 +50,44 @@ function resolveWebhookSecret(provider: string): string | undefined {
   );
 }
 
+function isBankingEnabledForOrganization(organizationId: string): boolean {
+  const raw = process.env["BANK_ENABLED_ORG_IDS"];
+  if (raw == null || raw.trim() === "") {
+    return true;
+  }
+
+  const normalized = raw.trim();
+  if (normalized === "*") {
+    return true;
+  }
+
+  const allowedIds = normalized
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return allowedIds.includes(organizationId);
+}
+
 export async function bankRoutes(fastify: FastifyInstance) {
   const adapter = fastify.bankAdapter;
   const bankSync = fastify.bankSync;
   const bankMatching = createBankTransactionMatchingService({
     repos: fastify.repos,
+  });
+
+  fastify.addHook("preHandler", async (request, reply) => {
+    const orgId = (request.params as Record<string, string | undefined>)["orgId"];
+    if (!orgId) {
+      return;
+    }
+
+    if (!isBankingEnabledForOrganization(orgId)) {
+      return reply.status(403).send({
+        error: "Bankfunktioner är inte aktiverade för organisationen",
+        code: "BANKING_DISABLED",
+      });
+    }
   });
 
   // POST /:orgId/bank/connect/init — generate OAuth authorization URL
