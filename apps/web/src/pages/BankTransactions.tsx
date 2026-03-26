@@ -114,7 +114,7 @@ export function BankTransactions() {
       addToast(t("bank.toast.matched"), "success");
     },
     onError: (error: Error) => {
-      addToast(getErrorMessage(error), "error");
+      addToast(getErrorMessage(error, t("bank.error.generic")), "error");
     },
   });
 
@@ -125,7 +125,7 @@ export function BankTransactions() {
       addToast(t("bank.toast.unmatched"), "success");
     },
     onError: (error: Error) => {
-      addToast(getErrorMessage(error), "error");
+      addToast(getErrorMessage(error, t("bank.error.generic")), "error");
     },
   });
 
@@ -136,7 +136,7 @@ export function BankTransactions() {
       addToast(t("bank.toast.confirmed"), "success");
     },
     onError: (error: Error) => {
-      addToast(getErrorMessage(error), "error");
+      addToast(getErrorMessage(error, t("bank.error.generic")), "error");
     },
   });
 
@@ -161,7 +161,7 @@ export function BankTransactions() {
       addToast(toast, "success");
     },
     onError: (error: Error) => {
-      addToast(getErrorMessage(error), "error");
+      addToast(getErrorMessage(error, t("bank.error.generic")), "error");
     },
   });
 
@@ -583,12 +583,12 @@ export function BankTransactions() {
   );
 }
 
-function getErrorMessage(error: Error): string {
+function getErrorMessage(error: Error, fallback: string): string {
   if (error instanceof ApiError) {
     return error.message;
   }
 
-  return "Något gick fel. Försök igen.";
+  return fallback;
 }
 
 const labelStyle: React.CSSProperties = {
