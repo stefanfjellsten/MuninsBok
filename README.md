@@ -76,6 +76,14 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 - CSV (alla rapporter)
 - Verifikatimport från CSV (bankutdrag → verifikat) med 4-stegs wizard (uppladdning → kolumnmappning → förhandsgranskning → resultat)
 
+### Bankkoppling
+- Organisationsstyrd feature-gating via `BANK_ENABLED_ORG_IDS` och `VITE_BANK_ENABLED_ORG_IDS`
+- OAuth-baserad bankanslutning med synkstatus och autentiseringsförnyelse
+- Manuell transaktionssynk med historik över synkkörningar
+- Matchningskandidater med score och förklaringar (belopp, datum, beskrivning)
+- Matcha, avmatcha och bekräfta banktransaktioner
+- Skapa verifikat direkt från banktransaktion och bekräfta matchning
+
 ### Attestflöde
 - Konfigurera attestregler baserat på beloppsintervall och rollkrav
 - Flerstegsattest med stöd för stegordning
@@ -101,6 +109,7 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 - Språkväljare i headern
 - Sparas i localStorage — val kvarstår mellan sessioner
 - ~230 översättningsnycklar som täcker alla delar av appen
+- Banking-modulen är internationaliserad i sv/en, inklusive actions, status, felmeddelanden och kandidatväljare
 
 ### Autentisering & säkerhet
 - JWT-autentisering (access-token i minnet + refresh-token som httpOnly-cookie med jti-baserad återkallning)
@@ -143,7 +152,7 @@ Bank-webhook-signaturer i produktion konfigureras via `BANK_WEBHOOK_HMAC_SECRET`
 ---
 
 ## Framtida utveckling
-- Bankkoppling (Sprint 3 pågår: anslutnings/sync-endpoints, webhook-ingest, idempotens och transaktionslistning)
+- Bankkoppling: bulkåtgärder i transaktionsvyn, utökade e2e-flöden och fortsatt UX-polish
 
 ---
 
