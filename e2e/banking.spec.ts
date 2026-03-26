@@ -44,7 +44,27 @@ test.describe("Banking e2e", () => {
     const createOrgBody = await createOrgResp.json();
     const orgId = String(createOrgBody.data.id);
 
+    const orgResp = await request.get(`${API_BASE}/organizations/${orgId}`, {
+      headers: { Authorization: `Bearer ${auth.accessToken}` },
+    });
+    expect(orgResp.ok()).toBeTruthy();
+
     const externalConnectionId = `ext-${Date.now()}`;
+    const initResp = await authedPost(
+      request,
+      `/organizations/${orgId}/bank/connect/init`,
+      auth.accessToken,
+      {
+        externalConnectionId,
+        redirectUri: "http://127.0.0.1:5173/bank/callback",
+      },
+    );
+    if (!initResp.ok()) {
+      const initError = await initResp.text();
+      console.error(`Bank init error (${initResp.status()}):`, initError);
+    }
+    expect(initResp.ok()).toBeTruthy();
+
     const callbackResp = await authedPost(
       request,
       `/organizations/${orgId}/bank/connect/callback`,
@@ -56,6 +76,12 @@ test.describe("Banking e2e", () => {
         displayName: "Sandboxkonto E2E",
       },
     );
+
+    if (!callbackResp.ok()) {
+      const errorBody = await callbackResp.text();
+      console.error(`Bank callback error (${callbackResp.status()}):`, errorBody);
+    }
+
     expect(callbackResp.status()).toBe(201);
     const callbackBody = await callbackResp.json();
     const connectionId = String(callbackBody.data.id);
