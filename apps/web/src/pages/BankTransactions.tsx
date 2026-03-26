@@ -59,6 +59,11 @@ export function BankTransactions() {
   const [toDate, setToDate] = useState("");
   const [candidatePickerTx, setCandidatePickerTx] = useState<BankTransactionEntity | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [createVoucherTx, setCreateVoucherTx] = useState<BankTransactionEntity | null>(null);
+  const [bankAccountNumber, setBankAccountNumber] = useState("1930");
+  const [counterAccountNumber, setCounterAccountNumber] = useState("6071");
+  const [voucherDescription, setVoucherDescription] = useState("");
+  const [createVoucherError, setCreateVoucherError] = useState("");
 
   const query = useQuery({
     queryKey: [
@@ -158,6 +163,7 @@ export function BankTransactions() {
         "{voucherNumber}",
         String(result.data.voucher.number),
       );
+      closeCreateVoucherModal();
       addToast(toast, "success");
     },
     onError: (error: Error) => {
@@ -189,6 +195,37 @@ export function BankTransactions() {
   const selectedCandidate = matchCandidates.find(
     (candidate) => candidate.voucherId === selectedCandidateId,
   );
+
+  const openCreateVoucherModal = (tx: BankTransactionEntity) => {
+    setCreateVoucherTx(tx);
+    setBankAccountNumber("1930");
+    setCounterAccountNumber("6071");
+    setVoucherDescription(`Banktransaktion: ${tx.description}`);
+    setCreateVoucherError("");
+  };
+
+  const closeCreateVoucherModal = () => {
+    setCreateVoucherTx(null);
+    setCreateVoucherError("");
+  };
+
+  const submitCreateVoucher = () => {
+    if (!createVoucherTx) return;
+
+    const validAccount = /^\d{4}$/;
+    if (!validAccount.test(bankAccountNumber) || !validAccount.test(counterAccountNumber)) {
+      setCreateVoucherError(t("bank.createVoucher.invalidAccount"));
+      return;
+    }
+
+    setCreateVoucherError("");
+    createVoucherMutation.mutate({
+      transactionId: createVoucherTx.id,
+      bankAccountNumber,
+      counterAccountNumber,
+      description: voucherDescription.trim(),
+    });
+  };
 
   if (!bankingEnabled) {
     return (
@@ -397,26 +434,7 @@ export function BankTransactions() {
                           <button
                             style={{ ...smallButtonStyle, background: "#0f766e" }}
                             disabled={isBusy || tx.matchStatus === "CONFIRMED"}
-                            onClick={() => {
-                              const counterAccountNumber = window.prompt(
-                                t("bank.prompt.counterAccount"),
-                                "6071",
-                              );
-                              if (!counterAccountNumber) return;
-
-                              const bankAccountNumber = window.prompt(
-                                t("bank.prompt.bankAccount"),
-                                "1930",
-                              );
-                              if (!bankAccountNumber) return;
-
-                              createVoucherMutation.mutate({
-                                transactionId: tx.id,
-                                bankAccountNumber,
-                                counterAccountNumber,
-                                description: `Banktransaktion: ${tx.description}`,
-                              });
-                            }}
+                            onClick={() => openCreateVoucherModal(tx)}
                           >
                             {isCreatingVoucher
                               ? t("bank.action.creating")
@@ -544,6 +562,89 @@ export function BankTransactions() {
                     {applyMatchMutation.isPending
                       ? t("bank.modal.applying")
                       : t("bank.modal.apply")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {createVoucherTx && (
+            <div style={modalBackdropStyle}>
+              <div className="card" style={modalCardStyle}>
+                <div className="flex-between" style={{ marginBottom: "0.75rem" }}>
+                  <h3 style={{ margin: 0 }}>{t("bank.createVoucher.title")}</h3>
+                  <button className="secondary" onClick={closeCreateVoucherModal}>
+                    {t("common.cancel")}
+                  </button>
+                </div>
+
+                <p className="text-muted" style={{ marginTop: 0 }}>
+                  {t("bank.createVoucher.transaction")
+                    .replace("{description}", createVoucherTx.description)
+                    .replace(
+                      "{amount}",
+                      formatAmount(createVoucherTx.amountOre, createVoucherTx.currency),
+                    )}
+                </p>
+
+                <div style={{ display: "grid", gap: "0.65rem" }}>
+                  <label style={labelStyle}>
+                    {t("bank.createVoucher.bankAccount")}
+                    <input
+                      value={bankAccountNumber}
+                      onChange={(event) => setBankAccountNumber(event.target.value)}
+                      style={inputStyle}
+                      inputMode="numeric"
+                      maxLength={4}
+                    />
+                  </label>
+
+                  <label style={labelStyle}>
+                    {t("bank.createVoucher.counterAccount")}
+                    <input
+                      value={counterAccountNumber}
+                      onChange={(event) => setCounterAccountNumber(event.target.value)}
+                      style={inputStyle}
+                      inputMode="numeric"
+                      maxLength={4}
+                    />
+                  </label>
+
+                  <label style={labelStyle}>
+                    {t("bank.createVoucher.description")}
+                    <input
+                      value={voucherDescription}
+                      onChange={(event) => setVoucherDescription(event.target.value)}
+                      style={inputStyle}
+                    />
+                  </label>
+
+                  {createVoucherError && (
+                    <p className="text-muted" style={{ color: "#b91c1c", margin: 0 }}>
+                      {createVoucherError}
+                    </p>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginTop: "0.85rem",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <button className="secondary" onClick={closeCreateVoucherModal}>
+                    {t("common.cancel")}
+                  </button>
+                  <button
+                    style={buttonStyle}
+                    disabled={createVoucherMutation.isPending}
+                    onClick={submitCreateVoucher}
+                  >
+                    {createVoucherMutation.isPending
+                      ? t("bank.createVoucher.submitting")
+                      : t("bank.createVoucher.submit")}
                   </button>
                 </div>
               </div>
