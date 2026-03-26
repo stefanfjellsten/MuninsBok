@@ -49,6 +49,17 @@ test.describe("Banking e2e", () => {
     });
     expect(orgResp.ok()).toBeTruthy();
 
+    // Create a fiscal year – the frontend only renders routes when both
+    // organization AND fiscal year are selected.
+    const now = new Date();
+    const fyResp = await authedPost(
+      request,
+      `/organizations/${orgId}/fiscal-years`,
+      auth.accessToken,
+      { startDate: `${now.getFullYear()}-01-01`, endDate: `${now.getFullYear()}-12-31` },
+    );
+    expect(fyResp.status()).toBe(201);
+
     const externalConnectionId = `ext-${Date.now()}`;
     const initResp = await authedPost(
       request,
@@ -93,6 +104,10 @@ test.describe("Banking e2e", () => {
       {},
     );
     expect(syncResp.ok()).toBeTruthy();
+
+    // Navigate to dashboard first so the org context initialises
+    await page.goto("/dashboard");
+    await expect(page.getByRole("navigation")).toBeVisible();
 
     await page.goto(`/bank/${connectionId}/transactions`);
     await expect(page.getByRole("heading", { name: "Transaktioner" })).toBeVisible();
