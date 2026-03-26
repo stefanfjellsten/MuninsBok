@@ -133,6 +133,36 @@ Rekommendation: håll frontend- och backend-variabler synkade för att undvika a
 
 ---
 
+## Felsökning: API-container och kodmismatch
+
+Om API:t returnerar `404 Route not found` för endpoints som finns i källkoden, kör containern sannolikt en **gammal Docker-image**.
+
+**Diagnostisera:**
+
+```bash
+# Se containerålder
+docker compose ps
+
+# Kontrollera att rätt routes laddas
+docker logs --tail 50 muninsbok-api | grep -i "route\|listen\|error"
+```
+
+**Åtgärda:**
+
+```bash
+# Bygg om utan cache och starta
+docker compose build --no-cache api
+docker compose up -d api
+
+# Vänta på healthcheck och verifiera
+docker compose ps
+curl http://localhost:3000/health
+```
+
+**Rutin vid deploy:** Inkludera alltid `docker compose build` i deploy-flödet. CI/CD-pipelinen bör använda `--no-cache` eller bygga med unik tag för att undvika stale images.
+
+---
+
 ## TLS / HTTPS med nginx
 
 I produktion ska all trafik gå via HTTPS. Lägg en **nginx reverse proxy** framför Docker-stacken.
