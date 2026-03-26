@@ -119,6 +119,53 @@ pnpm db:generate
 3. Se till att `pnpm test` och `pnpm lint` passerar.
 4. Öppna en Pull Request mot `main`.
 
+## Felsökning av Docker & e2e
+
+### "Route not found" (404) trots att route finns i koden
+
+Om ett e2e-test (eller manuellt API-anrop) returnerar `404 Route not found` för en route som finns i källkoden, beror det troligast på att Docker-containern kör en **gammal image** som inte inkluderar de senaste ändringarna.
+
+**Fix:**
+
+```bash
+# 1. Bygg om API-imagen utan cache
+docker compose build --no-cache api
+
+# 2. Starta om containern med ny image
+docker compose up -d api
+
+# 3. Verifiera att routen registreras i loggarna
+docker logs --tail 30 muninsbok-api
+```
+
+### Snabb recovery-checklista
+
+```bash
+# Kontrollera att alla containrar lever
+docker compose ps
+
+# Om API:t är nere eller visar "unhealthy"
+docker compose restart api
+
+# Om API:t saknar nya routes
+docker compose build --no-cache api && docker compose up -d api
+
+# Om databasen inte svarar
+docker compose restart postgres
+
+# Rensa test-artifacts (ignoreras redan av .gitignore)
+Remove-Item -Recurse -Force test-results, playwright-report -ErrorAction SilentlyContinue
+```
+
+### Vanliga e2e-problem
+
+| Symptom | Orsak | Lösning |
+|---------|-------|---------|
+| Route 404 trots att koden finns | Gammal Docker-image | `docker compose build --no-cache api` |
+| Databasfel / connection refused | Postgres-container nere | `docker compose up -d postgres` |
+| Test hänger vid start | Port redan upptagen | Stäng processen på port 3000/5173 |
+| UI-element hittas inte | Frontend ej ombyggd | `docker compose build --no-cache web` |
+
 ## Rapportera buggar
 
 Öppna en issue och inkludera:
