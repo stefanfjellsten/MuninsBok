@@ -152,7 +152,17 @@ Bank-webhook-signaturer i produktion konfigureras via `BANK_WEBHOOK_HMAC_SECRET`
 ---
 
 ## Framtida utveckling
-- Bankkoppling: bulkåtgärder i transaktionsvyn, utökade e2e-flöden och fortsatt UX-polish
+
+### Pågående
+- Bankkoppling: e2e-flöde för transaktionsvyn efter callback (UI-navigation)
+
+### Planerat
+- Bankkoppling: bulkåtgärder i transaktionsvyn
+- Bankkoppling: automatisk synkschemaläggning
+- Bankkoppling: fortsatt UX-polish och felhantering
+
+### Nyligen löst
+- Bankkoppling: API-routes (init + callback) returnerade 404 i e2e p.g.a. stale Docker-image — löst med rebuild-rutin
 
 ---
 
