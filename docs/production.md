@@ -58,8 +58,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | `PORT` | Nej (default: `3000`) | Lyssningsport |
 | `DATABASE_POOL_SIZE` | Nej (default: `20`) | Max antal databasanslutningar i poolen |
 | `API_KEY` | Nej | Enkel delad-hemlighet-auth. Ignoreras när `JWT_SECRET` är satt. |
+| `OCR_ENABLE_PDF` | Nej (default: `false`) | Aktiverar lokal PDF→bild-konvertering för OCR (kräver `pdftoppm`/Poppler i runtime) |
 | `BANK_WEBHOOK_HMAC_SECRET` | Rekommenderat | Global HMAC-hemlighet for bank-webhooks (`x-webhook-signature`) |
 | `BANK_WEBHOOK_<PROVIDER>_HMAC_SECRET` | Nej | Providerspecifik HMAC-hemlighet som prioriteras over global hemlighet |
+| `BANK_ENABLED_ORG_IDS` | Nej | Backend feature-gate för banking per organisation: tom/ej satt = alla, `*` = alla, annars kommaseparerad lista av org-id |
+| `VITE_BANK_ENABLED_ORG_IDS` | Nej | Frontend feature-gate med samma syntax som backend; bör spegla `BANK_ENABLED_ORG_IDS` |
 
 Servern validerar vid start att `DATABASE_URL` finns — saknas den avslutas processen direkt med felmeddelande.
 
@@ -107,6 +110,26 @@ Tips:
 
 - Behall global fallback (`BANK_WEBHOOK_HMAC_SECRET`) endast om ni verkligen behover den.
 - Providerspecifika hemligheter ar tydligare och minskar blast radius vid hemlighetslage.
+
+### Banking feature-gating i produktion
+
+Använd org-scope-gating för att rulla ut banking stegvis:
+
+```dotenv
+# Backend (API-access till /bank-endpoints)
+BANK_ENABLED_ORG_IDS=org-123,org-456
+
+# Frontend (navigation/routes i web)
+VITE_BANK_ENABLED_ORG_IDS=org-123,org-456
+```
+
+Regler:
+
+- Tom/ej satt variabel: banking är aktiverat för alla organisationer.
+- `*`: explicit aktiverat för alla organisationer.
+- Komma-separerad lista: endast angivna organisationer.
+
+Rekommendation: håll frontend- och backend-variabler synkade för att undvika att UI visar funktioner som API nekar.
 
 ---
 
