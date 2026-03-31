@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U muninsbok"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -39,6 +39,7 @@ services:
       HOST: 0.0.0.0
       PORT: 3000
       JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     volumes:
       - uploads_data:/app/uploads
     healthcheck:
@@ -64,6 +65,12 @@ services:
     container_name: muninsbok-web
     ports:
       - "5173:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     depends_on:
       api:
         condition: service_healthy
