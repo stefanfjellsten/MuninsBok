@@ -53,7 +53,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | `NODE_ENV` | Nej (default: `development`) | Sätts till `production` — styr loggformat och varningar |
 | `DATABASE_URL` | **Ja** | PostgreSQL-anslutningssträng |
 | `JWT_SECRET` | **Rekommenderat** | Aktiverar JWT-autentisering (register/login). **Varning visas om den saknas i produktion.** |
-| `CORS_ORIGIN` | Rekommenderat | Frontend-URL (t.ex. `https://bok.example.se`) |
+| `CORS_ORIGIN` | **Ja (produktion)** | Frontend-URL (t.ex. `https://bok.example.se`). **API:et startar inte utan denna i produktion.** |
 | `HOST` | Nej (default: `0.0.0.0`) | Lyssningsadress |
 | `PORT` | Nej (default: `3000`) | Lyssningsport |
 | `DATABASE_POOL_SIZE` | Nej (default: `20`) | Max antal databasanslutningar i poolen |
