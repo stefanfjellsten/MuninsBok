@@ -37,6 +37,11 @@ if (isProd && !process.env["JWT_SECRET"] && !process.env["API_KEY"]) {
   console.warn("VARNING: Varken JWT_SECRET eller API_KEY är satt — API:et är helt oskyddat!");
 }
 
+if (isProd && !process.env["CORS_ORIGIN"]) {
+  console.error("CORS_ORIGIN måste sättas i produktion.");
+  process.exit(1);
+}
+
 // ------ Build app ------
 const repos = createRepositories(prisma);
 const documentStorage = new DocumentStorage();
