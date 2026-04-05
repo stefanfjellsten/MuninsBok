@@ -384,6 +384,11 @@ export interface IBankTransactionRepository {
     organizationId: string,
     input: BankTransactionMatchUpdateInput,
   ): Promise<BankTransaction | null>;
+  updateMatchMany(
+    ids: string[],
+    organizationId: string,
+    input: BankTransactionMatchUpdateInput,
+  ): Promise<number>;
   deleteByConnection(connectionId: string, organizationId: string): Promise<number>;
 }
 
