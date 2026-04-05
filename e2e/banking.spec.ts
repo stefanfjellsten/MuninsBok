@@ -105,12 +105,15 @@ test.describe("Banking e2e", () => {
     );
     expect(syncResp.ok()).toBeTruthy();
 
-    // Navigate to dashboard first so the org context initialises
-    await page.goto("/dashboard");
-    await expect(page.getByRole("navigation")).toBeVisible();
-
+    // Navigate to the transactions page – a single full reload keeps the
+    // httpOnly refresh cookie valid (avoids double token rotation).
     await page.goto(`/bank/${connectionId}/transactions`);
-    await expect(page.getByRole("heading", { name: "Transaktioner" })).toBeVisible();
+
+    // Wait for org context to initialise (auto-selects first org + FY)
+    await expect(page.getByRole("navigation")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Transaktioner" })).toBeVisible({
+      timeout: 10000,
+    });
     await expect(page.getByRole("button", { name: "Skapa verifikat" }).first()).toBeVisible();
 
     await page.getByRole("button", { name: "Skapa verifikat" }).first().click();
@@ -119,11 +122,14 @@ test.describe("Banking e2e", () => {
     await expect(modal).toBeVisible();
 
     await modal.getByLabel("Bankkonto").fill("1930");
-    await modal.getByLabel("Motkonto").fill("6071");
+    await modal.getByLabel("Motkonto").fill("6010");
     await modal.getByLabel("Beskrivning").fill("E2E verifikat från banktransaktion");
     await modal.getByRole("button", { name: "Skapa verifikat" }).click();
 
+    // Wait for modal to close (API call may be slow under parallel load)
+    await expect(modal).not.toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/skapades och transaktionen bekräftades/i)).toBeVisible();
-    await expect(page.getByText("Bekräftad").first()).toBeVisible();
+    // Verify the transaction status in the table (not the filter dropdown option)
+    await expect(page.locator("table").getByText("Bekräftad").first()).toBeVisible();
   });
 });
