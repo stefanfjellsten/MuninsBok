@@ -9,6 +9,7 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import { CreateOrganizationDialog } from "./components/CreateOrganizationDialog";
 import { SearchDialog } from "./components/SearchDialog";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { isBankingEnabledForOrganization } from "./utils/bank-feature-flag";
 
 // Lazy-loaded page components (code-split per route)
@@ -312,52 +313,54 @@ function AppContent() {
           </nav>
 
           <main id="main-content">
-            <Suspense fallback={<div className="loading">{t("common.loading")}</div>}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/vouchers" element={<VoucherList />} />
-                <Route path="/vouchers/new" element={<VoucherCreate />} />
-                <Route path="/vouchers/:voucherId" element={<VoucherDetail />} />
-                <Route path="/templates" element={<VoucherTemplates />} />
-                <Route path="/templates/new" element={<VoucherTemplateForm />} />
-                <Route path="/templates/:templateId/edit" element={<VoucherTemplateForm />} />
-                <Route path="/budgets" element={<Budgets />} />
-                <Route path="/budgets/new" element={<BudgetForm />} />
-                <Route path="/budgets/:budgetId/edit" element={<BudgetForm />} />
-                <Route path="/budgets/:budgetId/vs-actual" element={<BudgetVsActual />} />
-                <Route path="/accounts" element={<AccountList />} />
-                {bankingEnabled && <Route path="/bank" element={<BankConnections />} />}
-                {bankingEnabled && (
-                  <Route path="/bank/:connectionId/transactions" element={<BankTransactions />} />
-                )}
-                <Route path="/reports/trial-balance" element={<TrialBalance />} />
-                <Route path="/reports/income-statement" element={<IncomeStatement />} />
-                <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
-                <Route path="/reports/vat" element={<VatReport />} />
-                <Route path="/reports/vat-declaration" element={<VatDeclaration />} />
-                <Route path="/reports/period" element={<PeriodReport />} />
-                <Route path="/reports/account-analysis" element={<AccountAnalysis />} />
-                <Route path="/reports/journal" element={<Journal />} />
-                <Route path="/reports/general-ledger" element={<GeneralLedger />} />
-                <Route path="/reports/voucher-list" element={<VoucherListReport />} />
-                <Route path="/sie" element={<SieExport />} />
-                <Route path="/csv-import" element={<CsvImport />} />
-                <Route path="/fiscal-years" element={<FiscalYears />} />
-                <Route path="/year-end-closing" element={<YearEndClosing />} />
-                <Route path="/result-disposition" element={<ResultDisposition />} />
-                <Route path="/year-end-summary" element={<YearEndSummary />} />
-                <Route path="/members" element={<Members />} />
-                <Route path="/approval-rules" element={<ApprovalRules />} />
-                <Route path="/pending-approvals" element={<PendingApprovals />} />
-                <Route path="/customers" element={<Customers />} />
-                <Route path="/invoices" element={<Invoices />} />
-                <Route path="/invoices/new" element={<InvoiceForm />} />
-                <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
-                <Route path="/invoices/:invoiceId/edit" element={<InvoiceForm />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<div className="loading">{t("common.loading")}</div>}>
+                <Routes>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/vouchers" element={<VoucherList />} />
+                  <Route path="/vouchers/new" element={<VoucherCreate />} />
+                  <Route path="/vouchers/:voucherId" element={<VoucherDetail />} />
+                  <Route path="/templates" element={<VoucherTemplates />} />
+                  <Route path="/templates/new" element={<VoucherTemplateForm />} />
+                  <Route path="/templates/:templateId/edit" element={<VoucherTemplateForm />} />
+                  <Route path="/budgets" element={<Budgets />} />
+                  <Route path="/budgets/new" element={<BudgetForm />} />
+                  <Route path="/budgets/:budgetId/edit" element={<BudgetForm />} />
+                  <Route path="/budgets/:budgetId/vs-actual" element={<BudgetVsActual />} />
+                  <Route path="/accounts" element={<AccountList />} />
+                  {bankingEnabled && <Route path="/bank" element={<BankConnections />} />}
+                  {bankingEnabled && (
+                    <Route path="/bank/:connectionId/transactions" element={<BankTransactions />} />
+                  )}
+                  <Route path="/reports/trial-balance" element={<TrialBalance />} />
+                  <Route path="/reports/income-statement" element={<IncomeStatement />} />
+                  <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
+                  <Route path="/reports/vat" element={<VatReport />} />
+                  <Route path="/reports/vat-declaration" element={<VatDeclaration />} />
+                  <Route path="/reports/period" element={<PeriodReport />} />
+                  <Route path="/reports/account-analysis" element={<AccountAnalysis />} />
+                  <Route path="/reports/journal" element={<Journal />} />
+                  <Route path="/reports/general-ledger" element={<GeneralLedger />} />
+                  <Route path="/reports/voucher-list" element={<VoucherListReport />} />
+                  <Route path="/sie" element={<SieExport />} />
+                  <Route path="/csv-import" element={<CsvImport />} />
+                  <Route path="/fiscal-years" element={<FiscalYears />} />
+                  <Route path="/year-end-closing" element={<YearEndClosing />} />
+                  <Route path="/result-disposition" element={<ResultDisposition />} />
+                  <Route path="/year-end-summary" element={<YearEndSummary />} />
+                  <Route path="/members" element={<Members />} />
+                  <Route path="/approval-rules" element={<ApprovalRules />} />
+                  <Route path="/pending-approvals" element={<PendingApprovals />} />
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/invoices" element={<Invoices />} />
+                  <Route path="/invoices/new" element={<InvoiceForm />} />
+                  <Route path="/invoices/:invoiceId" element={<InvoiceDetail />} />
+                  <Route path="/invoices/:invoiceId/edit" element={<InvoiceForm />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
           </main>
         </>
       ) : organization ? (
