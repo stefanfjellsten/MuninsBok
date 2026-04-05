@@ -64,6 +64,7 @@ export function BankTransactions() {
   const [counterAccountNumber, setCounterAccountNumber] = useState("6071");
   const [voucherDescription, setVoucherDescription] = useState("");
   const [createVoucherError, setCreateVoucherError] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const query = useQuery({
     queryKey: [
@@ -171,11 +172,42 @@ export function BankTransactions() {
     },
   });
 
+  const bulkConfirmMutation = useMutation({
+    mutationFn: (ids: string[]) => api.bulkConfirmBankTransactions(orgId, ids),
+    onSuccess: (result) => {
+      invalidateTransactions();
+      setSelectedIds(new Set());
+      addToast(
+        t("bank.toast.bulkConfirmed").replace("{count}", String(result.data.updated)),
+        "success",
+      );
+    },
+    onError: (error: Error) => {
+      addToast(getErrorMessage(error, t("bank.error.generic")), "error");
+    },
+  });
+
+  const bulkUnmatchMutation = useMutation({
+    mutationFn: (ids: string[]) => api.bulkUnmatchBankTransactions(orgId, ids),
+    onSuccess: (result) => {
+      invalidateTransactions();
+      setSelectedIds(new Set());
+      addToast(
+        t("bank.toast.bulkUnmatched").replace("{count}", String(result.data.updated)),
+        "success",
+      );
+    },
+    onError: (error: Error) => {
+      addToast(getErrorMessage(error, t("bank.error.generic")), "error");
+    },
+  });
+
   const handleFilterChange =
     (setter: (v: string) => void) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setter(e.target.value);
       setPage(1);
+      setSelectedIds(new Set());
     };
 
   const resetFilters = () => {
@@ -183,7 +215,30 @@ export function BankTransactions() {
     setFromDate("");
     setToDate("");
     setPage(1);
+    setSelectedIds(new Set());
   };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === transactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(transactions.map((tx) => tx.id)));
+    }
+  };
+
+  const isBulkBusy = bulkConfirmMutation.isPending || bulkUnmatchMutation.isPending;
 
   const matchCandidates = matchCandidatesQuery.data?.data ?? [];
   useEffect(() => {
@@ -327,10 +382,71 @@ export function BankTransactions() {
         </div>
       ) : (
         <>
+          {selectedIds.size > 0 && (
+            <div
+              className="card"
+              style={{
+                padding: "0.75rem 1rem",
+                marginBottom: "0.75rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ fontSize: "0.875rem", fontWeight: 500 }}>
+                {t("bank.bulk.selected").replace("{count}", String(selectedIds.size))}
+              </span>
+              <button
+                style={smallButtonStyle}
+                disabled={isBulkBusy}
+                onClick={() => bulkConfirmMutation.mutate([...selectedIds])}
+              >
+                {bulkConfirmMutation.isPending
+                  ? t("bank.action.confirming")
+                  : t("bank.bulk.confirm")}
+              </button>
+              <button
+                style={{
+                  ...smallButtonStyle,
+                  background: "transparent",
+                  color: "inherit",
+                  border: "1px solid #d1d5db",
+                }}
+                disabled={isBulkBusy}
+                onClick={() => bulkUnmatchMutation.mutate([...selectedIds])}
+              >
+                {bulkUnmatchMutation.isPending
+                  ? t("bank.action.unmatching")
+                  : t("bank.bulk.unmatch")}
+              </button>
+              <button
+                style={{
+                  ...smallButtonStyle,
+                  background: "transparent",
+                  color: "inherit",
+                  border: "1px solid #d1d5db",
+                }}
+                onClick={() => setSelectedIds(new Set())}
+              >
+                {t("bank.bulk.clearSelection")}
+              </button>
+            </div>
+          )}
+
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
+                  <th style={{ ...thStyle, width: "2.5rem" }}>
+                    <input
+                      type="checkbox"
+                      checked={transactions.length > 0 && selectedIds.size === transactions.length}
+                      onChange={toggleSelectAll}
+                      aria-label={t("bank.bulk.selectAll")}
+                      style={{ width: "1rem", height: "1rem" }}
+                    />
+                  </th>
                   <th style={thStyle}>{t("bank.table.date")}</th>
                   <th style={thStyle}>{t("bank.table.description")}</th>
                   <th style={{ ...thStyle, textAlign: "right" }}>{t("bank.table.amount")}</th>
@@ -361,6 +477,15 @@ export function BankTransactions() {
 
                   return (
                     <tr key={tx.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td style={tdStyle}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(tx.id)}
+                          onChange={() => toggleSelect(tx.id)}
+                          aria-label={`${t("bank.bulk.selectTransaction")} ${tx.description}`}
+                          style={{ width: "1rem", height: "1rem" }}
+                        />
+                      </td>
                       <td style={tdStyle}>{formatDate(tx.bookedAt)}</td>
                       <td style={tdStyle}>
                         <div>{tx.description}</div>
