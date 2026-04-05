@@ -178,6 +178,26 @@ export class BankTransactionRepository implements IBankTransactionRepository {
     return toBankTransaction(updated);
   }
 
+  async updateMatchMany(
+    ids: string[],
+    organizationId: string,
+    input: BankTransactionMatchUpdateInput,
+  ): Promise<number> {
+    if (ids.length === 0) return 0;
+
+    const result = await this.prisma.bankTransaction.updateMany({
+      where: { id: { in: ids }, organizationId },
+      data: {
+        matchStatus: input.status,
+        ...(input.matchedVoucherId !== undefined && { matchedVoucherId: input.matchedVoucherId }),
+        ...(input.matchConfidence !== undefined && { matchConfidence: input.matchConfidence }),
+        ...(input.matchNote !== undefined && { matchNote: input.matchNote }),
+      },
+    });
+
+    return result.count;
+  }
+
   async deleteByConnection(connectionId: string, organizationId: string): Promise<number> {
     const deleted = await this.prisma.bankTransaction.deleteMany({
       where: {
