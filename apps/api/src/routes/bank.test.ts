@@ -977,4 +977,78 @@ describe("Bank routes", () => {
       );
     });
   });
+
+  // ── Bulk operations ─────────────────────────────────────────────────────────
+
+  describe("POST /:orgId/bank/transactions/bulk/confirm", () => {
+    it("confirms multiple transactions and returns count", async () => {
+      repos.bankTransactions.updateMatchMany.mockResolvedValue(3);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/transactions/bulk/confirm`,
+        payload: { transactionIds: ["tx-1", "tx-2", "tx-3"] },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data.updated).toBe(3);
+      expect(repos.bankTransactions.updateMatchMany).toHaveBeenCalledWith(
+        ["tx-1", "tx-2", "tx-3"],
+        orgId,
+        { status: "CONFIRMED" },
+      );
+    });
+
+    it("returns 400 when transactionIds is empty", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/transactions/bulk/confirm`,
+        payload: { transactionIds: [] },
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+
+    it("returns 400 when transactionIds is missing", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/transactions/bulk/confirm`,
+        payload: {},
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe("POST /:orgId/bank/transactions/bulk/unmatch", () => {
+    it("unmatches multiple transactions and returns count", async () => {
+      repos.bankTransactions.updateMatchMany.mockResolvedValue(2);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/transactions/bulk/unmatch`,
+        payload: { transactionIds: ["tx-1", "tx-2"] },
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.data.updated).toBe(2);
+      expect(repos.bankTransactions.updateMatchMany).toHaveBeenCalledWith(
+        ["tx-1", "tx-2"],
+        orgId,
+        expect.objectContaining({ status: "PENDING_MATCH", matchedVoucherId: null }),
+      );
+    });
+
+    it("returns 400 when transactionIds is empty", async () => {
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/organizations/${orgId}/bank/transactions/bulk/unmatch`,
+        payload: { transactionIds: [] },
+      });
+
+      expect(res.statusCode).toBe(400);
+    });
+  });
 });
