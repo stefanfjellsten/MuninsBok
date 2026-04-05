@@ -41,36 +41,6 @@ const sampleAccounts = {
   ],
 };
 
-const sampleAnalysis = {
-  data: {
-    accountNumber: "1930",
-    accountName: "Företagskonto",
-    openingBalance: 10000000,
-    closingBalance: 8500000,
-    totalDebit: 5000000,
-    totalCredit: 6500000,
-    totalTransactions: 15,
-    months: [
-      {
-        label: "Jan 2024",
-        debit: 3000000,
-        credit: 4000000,
-        net: -1000000,
-        balance: 9000000,
-        transactionCount: 8,
-      },
-      {
-        label: "Feb 2024",
-        debit: 2000000,
-        credit: 2500000,
-        net: -500000,
-        balance: 8500000,
-        transactionCount: 7,
-      },
-    ],
-  },
-};
-
 describe("AccountAnalysis", () => {
   beforeEach(() => {
     vi.clearAllMocks();
