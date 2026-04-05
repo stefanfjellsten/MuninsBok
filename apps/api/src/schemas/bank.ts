@@ -50,6 +50,14 @@ export const bankTransactionConfirmSchema = z.object({
   matchNote: z.string().max(500).optional(),
 });
 
+export const bankBulkConfirmSchema = z.object({
+  transactionIds: z.array(z.string().min(1)).min(1).max(100),
+});
+
+export const bankBulkUnmatchSchema = z.object({
+  transactionIds: z.array(z.string().min(1)).min(1).max(100),
+});
+
 export const bankTransactionCreateVoucherSchema = z.object({
   fiscalYearId: z.string().min(1).optional(),
   bankAccountNumber: z.string().regex(/^\d{4}$/),
