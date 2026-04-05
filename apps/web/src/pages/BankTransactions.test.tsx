@@ -215,7 +215,7 @@ describe("BankTransactions bulk actions", () => {
     expect(checkboxes.length).toBeGreaterThanOrEqual(3); // select-all + 2 rows
 
     // Select first row
-    await user.click(checkboxes[1]);
+    await user.click(checkboxes[1]!);
 
     expect(screen.getByText("1 valda")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Bekräfta valda" })).toBeInTheDocument();
@@ -229,7 +229,7 @@ describe("BankTransactions bulk actions", () => {
     await screen.findByText("Betalning A");
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await user.click(checkboxes[0]); // select-all
+    await user.click(checkboxes[0]!); // select-all
 
     expect(screen.getByText("2 valda")).toBeInTheDocument();
   });
@@ -241,7 +241,7 @@ describe("BankTransactions bulk actions", () => {
     await screen.findByText("Betalning A");
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await user.click(checkboxes[0]); // select-all
+    await user.click(checkboxes[0]!); // select-all
 
     await user.click(screen.getByRole("button", { name: "Bekräfta valda" }));
 
@@ -260,7 +260,7 @@ describe("BankTransactions bulk actions", () => {
     await screen.findByText("Betalning A");
 
     const checkboxes = screen.getAllByRole("checkbox");
-    await user.click(checkboxes[0]);
+    await user.click(checkboxes[0]!);
 
     expect(screen.getByText("2 valda")).toBeInTheDocument();
 
