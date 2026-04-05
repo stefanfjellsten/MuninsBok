@@ -16,6 +16,8 @@ import {
   bankWebhookCreateSchema,
   bankWebhookListQuerySchema,
   bankSyncRunListQuerySchema,
+  bankBulkConfirmSchema,
+  bankBulkUnmatchSchema,
 } from "../schemas/index.js";
 
 function hmacSha256Hex(payload: unknown, secret: string): string {
@@ -281,6 +283,34 @@ export async function bankRoutes(fastify: FastifyInstance) {
 
     return reply.status(201).send({ data });
   });
+
+  // POST /:orgId/bank/transactions/bulk/confirm — confirm multiple matched transactions
+  fastify.post<{ Params: { orgId: string } }>(
+    "/:orgId/bank/transactions/bulk/confirm",
+    async (request, reply) => {
+      const body = parseBody(bankBulkConfirmSchema, request.body ?? {});
+      const count = await bankMatching.bulkConfirmTransactions(
+        request.params.orgId,
+        body.transactionIds,
+      );
+
+      return reply.status(200).send({ data: { updated: count } });
+    },
+  );
+
+  // POST /:orgId/bank/transactions/bulk/unmatch — unmatch multiple transactions
+  fastify.post<{ Params: { orgId: string } }>(
+    "/:orgId/bank/transactions/bulk/unmatch",
+    async (request, reply) => {
+      const body = parseBody(bankBulkUnmatchSchema, request.body ?? {});
+      const count = await bankMatching.bulkUnmatchTransactions(
+        request.params.orgId,
+        body.transactionIds,
+      );
+
+      return reply.status(200).send({ data: { updated: count } });
+    },
+  );
 
   // POST /:orgId/bank/webhooks — ingest provider webhook event
   fastify.post<{ Params: { orgId: string } }>("/:orgId/bank/webhooks", async (request) => {
