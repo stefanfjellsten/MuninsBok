@@ -11,6 +11,8 @@ const {
   mockMatchBankTransaction,
   mockUnmatchBankTransaction,
   mockConfirmBankTransaction,
+  mockBulkConfirmBankTransactions,
+  mockBulkUnmatchBankTransactions,
 } = vi.hoisted(() => ({
   mockAddToast: vi.fn(),
   mockGetBankTransactions: vi.fn(),
@@ -19,6 +21,8 @@ const {
   mockMatchBankTransaction: vi.fn(),
   mockUnmatchBankTransaction: vi.fn(),
   mockConfirmBankTransaction: vi.fn(),
+  mockBulkConfirmBankTransactions: vi.fn(),
+  mockBulkUnmatchBankTransactions: vi.fn(),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -57,6 +61,8 @@ vi.mock("../api", async () => {
       matchBankTransaction: mockMatchBankTransaction,
       unmatchBankTransaction: mockUnmatchBankTransaction,
       confirmBankTransaction: mockConfirmBankTransaction,
+      bulkConfirmBankTransactions: mockBulkConfirmBankTransactions,
+      bulkUnmatchBankTransactions: mockBulkUnmatchBankTransactions,
     },
   };
 });
@@ -91,6 +97,8 @@ describe("BankTransactions create voucher modal", () => {
     mockCreateVoucherFromBankTransaction.mockResolvedValue({
       data: { voucher: { number: 101 } },
     });
+    mockBulkConfirmBankTransactions.mockResolvedValue({ data: { updated: 1 } });
+    mockBulkUnmatchBankTransactions.mockResolvedValue({ data: { updated: 1 } });
   });
 
   it("opens create voucher modal from transaction row action", async () => {
@@ -151,5 +159,113 @@ describe("BankTransactions create voucher modal", () => {
     await waitFor(() => {
       expect(screen.queryByText("Skapa verifikat från transaktion")).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("BankTransactions bulk actions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockGetBankTransactions.mockResolvedValue({
+      data: [
+        {
+          id: "tx-1",
+          bookedAt: "2026-03-01T00:00:00.000Z",
+          description: "Betalning A",
+          amountOre: -10000,
+          currency: "SEK",
+          matchStatus: "MATCHED",
+          counterpartyName: null,
+          matchedVoucherId: "v-1",
+        },
+        {
+          id: "tx-2",
+          bookedAt: "2026-03-02T00:00:00.000Z",
+          description: "Betalning B",
+          amountOre: -20000,
+          currency: "SEK",
+          matchStatus: "MATCHED",
+          counterpartyName: null,
+          matchedVoucherId: "v-2",
+        },
+      ],
+      total: 2,
+      page: 1,
+      limit: 20,
+    });
+
+    mockGetBankMatchCandidates.mockResolvedValue({ data: [] });
+    mockMatchBankTransaction.mockResolvedValue({ data: {} });
+    mockUnmatchBankTransaction.mockResolvedValue({ data: {} });
+    mockConfirmBankTransaction.mockResolvedValue({ data: {} });
+    mockCreateVoucherFromBankTransaction.mockResolvedValue({
+      data: { voucher: { number: 101 } },
+    });
+    mockBulkConfirmBankTransactions.mockResolvedValue({ data: { updated: 2 } });
+    mockBulkUnmatchBankTransactions.mockResolvedValue({ data: { updated: 2 } });
+  });
+
+  it("shows bulk action bar when checkboxes are selected", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BankTransactions />);
+
+    await screen.findByText("Betalning A");
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes.length).toBeGreaterThanOrEqual(3); // select-all + 2 rows
+
+    // Select first row
+    await user.click(checkboxes[1]);
+
+    expect(screen.getByText("1 valda")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Bekräfta valda" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Avmatcha valda" })).toBeInTheDocument();
+  });
+
+  it("selects all with header checkbox", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BankTransactions />);
+
+    await screen.findByText("Betalning A");
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]); // select-all
+
+    expect(screen.getByText("2 valda")).toBeInTheDocument();
+  });
+
+  it("calls bulk confirm when clicking confirm selected", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BankTransactions />);
+
+    await screen.findByText("Betalning A");
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]); // select-all
+
+    await user.click(screen.getByRole("button", { name: "Bekräfta valda" }));
+
+    await waitFor(() => {
+      expect(mockBulkConfirmBankTransactions).toHaveBeenCalledWith(
+        "org-1",
+        expect.arrayContaining(["tx-1", "tx-2"]),
+      );
+    });
+  });
+
+  it("clears selection when clicking clear button", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<BankTransactions />);
+
+    await screen.findByText("Betalning A");
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[0]);
+
+    expect(screen.getByText("2 valda")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Avmarkera alla" }));
+
+    expect(screen.queryByText("2 valda")).not.toBeInTheDocument();
   });
 });
