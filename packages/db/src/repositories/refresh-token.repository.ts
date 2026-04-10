@@ -24,6 +24,13 @@ export class RefreshTokenRepository implements IRefreshTokenRepository {
     });
   }
 
+  async revokeByJtiIfExists(jti: string): Promise<boolean> {
+    const result = await this.prisma.refreshToken.deleteMany({
+      where: { jti },
+    });
+    return result.count > 0;
+  }
+
   async revokeAllByUserId(userId: string): Promise<void> {
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
