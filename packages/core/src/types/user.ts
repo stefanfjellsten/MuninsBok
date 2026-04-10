@@ -9,6 +9,10 @@ export interface User {
   readonly passwordHash: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  /** Number of consecutive failed login attempts. */
+  readonly failedLoginAttempts: number;
+  /** Account is locked until this time (null = not locked). */
+  readonly lockedUntil: Date | null;
 }
 
 /** Public-safe subset of User (without passwordHash). */
