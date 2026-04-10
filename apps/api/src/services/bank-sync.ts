@@ -1,6 +1,5 @@
 import type {
   BankConnection,
-  BankSyncRun,
   BankSyncTrigger,
   UpsertBankTransactionInput,
 } from "@muninsbok/core/types";

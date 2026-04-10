@@ -6,12 +6,7 @@
  * voucher status after a decision.
  */
 
-import type {
-  ApprovalRule,
-  ApprovalStep,
-  ApprovalStepStatus,
-  VoucherStatus,
-} from "../types/approval.js";
+import type { ApprovalRule, ApprovalStep, VoucherStatus } from "../types/approval.js";
 import type { MemberRole } from "../types/user.js";
 import type { CreateVoucherLineInput } from "../types/voucher-line.js";
 
