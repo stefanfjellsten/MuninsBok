@@ -25,8 +25,9 @@ describe("Helmet security headers", () => {
     expect(res.headers["x-powered-by"]).toBeUndefined();
   });
 
-  it("does not set Content-Security-Policy (disabled for API)", async () => {
+  it("sets Content-Security-Policy header", async () => {
     const res = await app.inject({ method: "GET", url: "/health" });
-    expect(res.headers["content-security-policy"]).toBeUndefined();
+    expect(res.headers["content-security-policy"]).toBeDefined();
+    expect(res.headers["content-security-policy"]).toContain("default-src 'self'");
   });
 });
