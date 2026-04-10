@@ -108,7 +108,7 @@ Målet är att göra bokföring **enkel, transparent och självhostbar** — uta
 - Svenska (standard) och engelska
 - Språkväljare i headern
 - Sparas i localStorage — val kvarstår mellan sessioner
-- ~230 översättningsnycklar som täcker alla delar av appen
+- ~280 översättningsnycklar som täcker alla delar av appen
 - Banking-modulen är internationaliserad i sv/en, inklusive actions, status, felmeddelanden och kandidatväljare
 
 ### Autentisering & säkerhet
@@ -143,7 +143,7 @@ Applikationen är **produktionsklar** för självhostning av småföretag och f�
 - **Webhooks**: HMAC-signaturverifiering for bank-webhooks via `x-webhook-signature` (global eller providerspecifik hemlighet)
 - **Infrastruktur**: Multi-stage Docker, non-root containers, healthchecks, log-rotation, graceful shutdown
 - **Drift**: Request-timeouts, konfigurerbar anslutningspool, strukturerad loggning, audit trail
-- **Tester**: 911+ enhetstester (inkl. React Testing Library-komponenttester) + E2E med Playwright, CI via GitHub Actions
+- **Tester**: 1 355 enhetstester (inkl. React Testing Library-komponenttester) + E2E med Playwright, CI via GitHub Actions
 
 Se [docs/production.md](docs/production.md) för fullständig driftsättningsguide.
 
@@ -153,16 +153,7 @@ Bank-webhook-signaturer i produktion konfigureras via `BANK_WEBHOOK_HMAC_SECRET`
 
 ## Framtida utveckling
 
-### Pågående
-- Bankkoppling: e2e-flöde för transaktionsvyn efter callback (UI-navigation)
-
-### Planerat
-- Bankkoppling: bulkåtgärder i transaktionsvyn
-- Bankkoppling: automatisk synkschemaläggning
-- Bankkoppling: fortsatt UX-polish och felhantering
-
-### Nyligen löst
-- Bankkoppling: API-routes (init + callback) returnerade 404 i e2e p.g.a. stale Docker-image — löst med rebuild-rutin
+Inga planerade funktioner för tillfället — alla roadmap-punkter (bankkoppling, fakturering, attestflöde, OCR) är implementerade.
 
 ---
 
@@ -312,14 +303,14 @@ muninsbok/
 
 ## Teststatus
 
-**911+ enhetstester** fördelade på 76+ testfiler:
+**1 355 enhetstester** fördelade på 127 testfiler:
 
 | Paket | Testfiler | Tester | Vad som testas |
 |-------|-----------|--------|----------------|
 | `@muninsbok/core` | 25 | 360 | Result-typer, organisationsnummer (Luhn), kontotyper, kontoplan (BAS), räkenskapsår (max 18 mån), verifikatrader, verifikatvalidering, dokument-MIME, rapporter (råbalans, resultat, balans, moms, SKV 4700, periodrapport, kontoanalys, boksluts-förhandsvisning, grundbok, huvudbok, verifikationslista), SIE-import/export (IB/UB/RES), resultatdisposition, budget (budget vs utfall-rapport), CSV-import (parser, delimiter-detection, datum-/beloppsformatering), i18n (sv/en-ordlistor, translate, createTranslator), fakturaberäkning (radbelopp, moms, totalsummor, statusövergångsmaskin) |
-| `@muninsbok/db` | 1 | 17 | Prisma→domän-mappers (organisation, räkenskapsår, konto, verifikat, verifikatrad, dokument) |
-| `@muninsbok/api` | 31 | 373 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat, räkenskapsår, budgetar, kunder, fakturor), rapporter (10 st + dashboard), global sökning, boksluts-förhandsvisning, health check, Prometheus metrics, felhantering, auth (register/login/refresh/logout), httpOnly-cookie, tokenåterkallning, rollhantering, RBAC, audit-logging, rate limiting, input-sanitering, helmet, swagger, CSV-import (parse/preview/execute-endpoints), återkommande mallar (schema/due/execute-endpoints), attestflöde (regler CRUD, skicka/godkänn/avvisa), fakturering (kunder CRUD, fakturor CRUD, statusändringar) |
-| `@muninsbok/web` | 19 | 161 | ApiError-klass, fetchJson, auth-storage, dark mode (ThemeContext), verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering, CSV-export, assert-utils, LocaleContext (flerspråksstöd), **komponenttester (React Testing Library)**: ThemeToggle, ConfirmDialog, DateFilter, ErrorBoundary, ReportPageTemplate, ReportSectionRows, ProtectedRoute, ToastContext, Login, NotFound, SearchDialog |
+| `@muninsbok/db` | 3 | 27 | Prisma→domän-mappers (organisation, räkenskapsår, konto, verifikat, verifikatrad, dokument), bankrepo-tester (connection, transaction) |
+| `@muninsbok/api` | 38 | 472 | Zod-schemavalidering, CRUD-endpoints (organisationer, konton, verifikat, räkenskapsår, budgetar, kunder, fakturor), rapporter (10 st + dashboard), global sökning, boksluts-förhandsvisning, health check, Prometheus metrics, felhantering, auth (register/login/refresh/logout), httpOnly-cookie, tokenåterkallning, rollhantering, RBAC, audit-logging, rate limiting, input-sanitering, helmet, swagger, CSV-import (parse/preview/execute-endpoints), återkommande mallar (schema/due/execute-endpoints), attestflöde (regler CRUD, skicka/godkänn/avvisa), fakturering (kunder CRUD, fakturor CRUD, statusändringar), bankkoppling (CRUD, OAuth, sync, matchning, webhook), tjänster (OCR, dokumentlagring, bank-adapter/sync/matchning), receipt-OCR e2e |
+| `@muninsbok/web` | 61 | 496 | ApiError-klass, fetchJson, auth-storage, dark mode (ThemeContext), verifikatformulär (beräkningar, radhantering, öre-konvertering), beloppsformatering, CSV-export, assert-utils, LocaleContext (flerspråksstöd), **komponenttester (React Testing Library)**: ThemeToggle, ConfirmDialog, DateFilter, ErrorBoundary, ReportPageTemplate, ReportSectionRows, ProtectedRoute, ToastContext, Login, NotFound, SearchDialog, CreateOrgDialog, DeleteOrgDialog, EditOrgDialog, DocumentSection, CreateFiscalYear, OrganizationSelect, **sidtester**: Dashboard, VoucherList, VoucherForm, Accounts, Reports, TrialBalance, IncomeStatement, BalanceSheet, VatReport, SkvVatDeclaration, PeriodReport, AccountAnalysis, Journal, GeneralLedger, VoucherListReport, YearEndClosing, FiscalYears, Budget, CsvImport, RecurringTemplates, Members, ApprovalRules, Customers, Invoices, InvoiceForm, InvoiceDetail, BankConnections, BankTransactions, Settings, NotFound m.fl. |
 
 ---
 
