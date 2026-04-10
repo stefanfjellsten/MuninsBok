@@ -25,16 +25,9 @@ const nodeEnv = process.env["NODE_ENV"] ?? "development";
 const isProd = nodeEnv === "production";
 
 if (isProd && !process.env["JWT_SECRET"]) {
-  console.warn(
-    "VARNING: JWT_SECRET är inte satt — API:et körs utan användarautentisering i produktion!",
-  );
-  console.warn(
-    "Generera en hemlighet: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
-  );
-}
-
-if (isProd && !process.env["JWT_SECRET"] && !process.env["API_KEY"]) {
-  console.warn("VARNING: Varken JWT_SECRET eller API_KEY är satt — API:et är helt oskyddat!");
+  console.error("JWT_SECRET måste sättas i produktion. Generera en hemlighet:");
+  console.error("  node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\"");
+  process.exit(1);
 }
 
 if (isProd && !process.env["CORS_ORIGIN"]) {
@@ -59,7 +52,15 @@ const fastify = await buildApp({
   ...(apiKey != null && { apiKey }),
   ...(jwtSecret != null && { jwtSecret }),
   fastifyOptions: {
-    logger: isProd ? { level: "info" } : { level: "debug", transport: { target: "pino-pretty" } },
+    logger: isProd
+      ? {
+          level: "info",
+          redact: {
+            paths: ["req.headers.authorization", "req.headers.cookie", "req.headers['x-api-key']"],
+            censor: "[REDACTED]",
+          },
+        }
+      : { level: "debug", transport: { target: "pino-pretty" } },
   },
 });
 
