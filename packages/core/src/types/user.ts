@@ -15,8 +15,8 @@ export interface User {
   readonly lockedUntil: Date | null;
 }
 
-/** Public-safe subset of User (without passwordHash). */
-export type SafeUser = Omit<User, "passwordHash">;
+/** Public-safe subset of User (without passwordHash and security fields). */
+export type SafeUser = Omit<User, "passwordHash" | "failedLoginAttempts" | "lockedUntil">;
 
 export interface CreateUserInput {
   readonly email: string;
