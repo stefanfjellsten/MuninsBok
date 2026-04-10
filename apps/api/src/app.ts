@@ -32,6 +32,7 @@ import { dashboardRoutes } from "./routes/dashboard.js";
 import { searchRoutes } from "./routes/search.js";
 import { csvImportRoutes } from "./routes/csv-import.js";
 import { bankRoutes } from "./routes/bank.js";
+import { bankWebhookRoutes } from "./routes/bank-webhooks.js";
 import { authRoutes } from "./routes/auth.js";
 import { approvalRoutes } from "./routes/approval.js";
 import { invoiceRoutes } from "./routes/invoices.js";
@@ -68,7 +69,20 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   // Plugins
   await fastify.register(helmet, {
-    contentSecurityPolicy: false, // CSP handled by frontend / nginx
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
   });
 
   await fastify.register(cookie);
@@ -198,6 +212,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   if (options.jwtSecret) {
     await fastify.register(authRoutes, { prefix: "/api/auth" });
   }
+
+  // Bank webhook ingestion — public endpoint, HMAC-authenticated (no JWT)
+  await fastify.register(bankWebhookRoutes, { prefix: "/api/webhooks/bank" });
 
   // Routes — all org-scoped routes share the org-scope preHandler
   await fastify.register(
