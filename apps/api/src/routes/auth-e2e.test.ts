@@ -30,6 +30,8 @@ describe("auth E2E flow", () => {
     passwordHash: "will-be-set",
     createdAt: new Date(),
     updatedAt: new Date(),
+    failedLoginAttempts: 0,
+    lockedUntil: null,
   };
 
   beforeAll(async () => {
@@ -59,7 +61,7 @@ describe("auth E2E flow", () => {
         payload: {
           email: testUser.email,
           name: testUser.name,
-          password: "secure-password-123",
+          password: "Secur3-Pass!xyz",
         },
       });
 
@@ -149,6 +151,8 @@ describe("auth E2E flow", () => {
       repos.users.findByEmail.mockResolvedValueOnce({
         ...testUser,
         passwordHash: hash,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
       });
 
       const res = await app.inject({
@@ -314,6 +318,8 @@ describe("auth E2E flow", () => {
       repos.users.findByEmail.mockResolvedValueOnce({
         ...testUser,
         passwordHash: hash,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
       });
 
       const failRes = await app.inject({
@@ -331,6 +337,8 @@ describe("auth E2E flow", () => {
       repos.users.findByEmail.mockResolvedValueOnce({
         ...testUser,
         passwordHash: hash,
+        failedLoginAttempts: 1,
+        lockedUntil: null,
       });
 
       const okRes = await app.inject({
@@ -355,7 +363,7 @@ describe("auth E2E flow", () => {
         payload: {
           email: "not-an-email",
           name: "Test",
-          password: "password123",
+          password: "Passw0rd!xyz",
         },
       });
 
@@ -383,7 +391,7 @@ describe("auth E2E flow", () => {
         payload: {
           email: "valid@example.com",
           name: "",
-          password: "password123",
+          password: "Passw0rd!xyz",
         },
       });
 
@@ -402,7 +410,7 @@ describe("auth E2E flow", () => {
         payload: {
           email: "taken@example.com",
           name: "Existing",
-          password: "password123",
+          password: "Passw0rd!xyz",
         },
       });
 
@@ -443,8 +451,8 @@ describe("auth E2E flow", () => {
     it("rejects refresh when token has been revoked", async () => {
       const { refreshToken } = app.generateTokens(testUser.id, testUser.email);
 
-      // Mark the jti as revoked (existsByJti returns false)
-      repos.refreshTokens.existsByJti.mockResolvedValueOnce(false);
+      // Mark the jti as already revoked (revokeByJtiIfExists returns false)
+      repos.refreshTokens.revokeByJtiIfExists.mockResolvedValueOnce(false);
 
       const res = await app.inject({
         method: "POST",
@@ -481,7 +489,7 @@ describe("auth E2E flow", () => {
     it("refresh rotates tokens (revokes old, creates new)", async () => {
       const { refreshToken } = app.generateTokens(testUser.id, testUser.email);
 
-      repos.refreshTokens.existsByJti.mockResolvedValueOnce(true);
+      repos.refreshTokens.revokeByJtiIfExists.mockResolvedValueOnce(true);
 
       const res = await app.inject({
         method: "POST",
@@ -499,7 +507,7 @@ describe("auth E2E flow", () => {
       expect(cookies.find((c) => c.name === "refresh_token")).toBeDefined();
 
       // Old jti should have been revoked
-      expect(repos.refreshTokens.revokeByJti).toHaveBeenCalled();
+      expect(repos.refreshTokens.revokeByJtiIfExists).toHaveBeenCalled();
       // New token should have been stored
       expect(repos.refreshTokens.create).toHaveBeenCalled();
     });
