@@ -69,6 +69,10 @@ function parseDurationMs(dur: string): number {
 }
 
 async function jwtAuth(fastify: FastifyInstance, options: JwtAuthOptions): Promise<void> {
+  if (options.secret.length < 32) {
+    throw new Error("JWT secret must be at least 32 characters long");
+  }
+
   const accessTtl = options.accessTokenTtl ?? "15m";
   const refreshTtl = options.refreshTokenTtl ?? "7d";
   const refreshTtlMs = parseDurationMs(refreshTtl);
