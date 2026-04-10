@@ -12,6 +12,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import { api, type AuthUser } from "../api";
@@ -32,8 +33,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Guard against React StrictMode double-invoking the effect.
+  // The refresh endpoint uses atomic token rotation — a second concurrent
+  // request with the same jti would be rejected as already-consumed.
+  const refreshAttempted = useRef(false);
+
   // Attempt to restore session on mount via httpOnly cookie
   useEffect(() => {
+    if (refreshAttempted.current) return;
+    refreshAttempted.current = true;
+
     api
       .refreshTokens()
       .then(({ data }) => {
