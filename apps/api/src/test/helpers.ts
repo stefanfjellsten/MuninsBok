@@ -110,6 +110,9 @@ export function createMockUserRepo(): MockedRepo<IUserRepository> {
     findById: vi.fn(),
     findByEmail: vi.fn(),
     create: vi.fn(),
+    recordFailedLogin: vi.fn(),
+    resetFailedLogins: vi.fn(),
+    updatePasswordHash: vi.fn(),
     findMembersByOrganization: vi.fn(),
     findMembership: vi.fn(),
     addMember: vi.fn(),
@@ -124,6 +127,7 @@ export function createMockRefreshTokenRepo(): MockedRepo<IRefreshTokenRepository
     create: vi.fn().mockResolvedValue(undefined),
     existsByJti: vi.fn().mockResolvedValue(true),
     revokeByJti: vi.fn().mockResolvedValue(undefined),
+    revokeByJtiIfExists: vi.fn().mockResolvedValue(true),
     revokeAllByUserId: vi.fn().mockResolvedValue(undefined),
     cleanupExpired: vi.fn().mockResolvedValue(0),
   } as MockedRepo<IRefreshTokenRepository>;
